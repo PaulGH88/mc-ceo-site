@@ -3,23 +3,18 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>MissionControl(TM)</title>
-<meta name="description" content="Evidence before funding. Accountability after funding.">
+<!-- The tab title is the first thing on screen, before a single scroll, so it
+     is a question the reader already has and names nothing (Constitution 4.7). -->
+<title>Where should we invest next?</title>
+<meta name="description" content="Capital decisions should stay connected to the operational evidence that justified them.">
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='6' fill='%23100D08'/><circle cx='16' cy='16' r='4' fill='%23C9A14A'/></svg>">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Archivo:wght@400;500;600&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="scrollcraft.css">
 <style>
-  /* The whole rebrand: six colours and two faces.
-     Boardroom cinematic + engineering-grade precision (Oppenheimer, 2001,
-     The Economist, SpaceX, Tesla). Dropped the serif after the SpaceX/Tesla
-     addition to the brief: those two live in the same lane as 2001 (precision,
-     systems thinking, elegant futurism) and neither leads with an editorial
-     serif - they lead with a confident geometric sans and enormous restraint.
-     Space Grotesk carries the display voice; Archivo carries prose. Off-black
-     ground, warm brass-gold accent used as a region (numerals, hairlines),
-     never as confetti - fiduciary, not SaaS-purple, not cream-and-brass. */
+  /* ==== The brand, carried from V1 unchanged (Constitution Section 1: protect
+     the visual language). Six colours, two faces. ==== */
   :root {
     --sc-canvas:      #0B0A08;
     --sc-surface:     #14120D;
@@ -31,31 +26,111 @@
     --sc-font-text:    "Archivo", system-ui, sans-serif;
   }
 
-  /* ---- page-local structure. Engine mechanism classes are untouched. ---- */
+  /* ==================================================================
+     V2 MOVEMENT CONTRACT - see BRIEF.md. Three page-local devices, all
+     driven by the engine's own --sc-p custom property (published on every
+     act element every frame, inherited by every descendant). None of them
+     touches the engine.
+     ================================================================== */
 
+  /* 1. Continuous drift. Put it on a FRAME, never on a cue element: the
+     engine writes an inline transform on cue elements and would collide. */
+  [data-drift] {
+    --drift: 30vh;
+    transform: translate3d(0, calc((0.5 - var(--sc-p, 0.5)) * var(--drift)), 0);
+    will-change: transform;
+  }
+  [data-drift="slow"] { --drift: 18vh; }
+  [data-drift="fast"] { --drift: 44vh; }
+
+  /* 2. The ledger: a cumulative reveal. Each item has an entry point --e in
+     act progress and a window --w. --k is its arrival (0..1), eased with the
+     same smoothstep the engine uses for cues; --past is how far the act has
+     moved on since the item landed. Items arrive, rise into place and STAY.
+     Where --dim and --shrink are non-zero (Act 2) earlier items fade and
+     tighten as later ones arrive - the thinning the act is about. */
+  .ledger { display: flex; flex-direction: column; gap: var(--sc-2); }
+  .ledger__item {
+    --e: 0; --w: 0.12; --hold: 0.02; --dim: 0; --shrink: 0;
+    --k: clamp(0, calc((var(--sc-p, 0) - var(--e)) / var(--w)), 1);
+    --ks: calc(var(--k) * var(--k) * (3 - 2 * var(--k)));
+    --past: clamp(0, calc((var(--sc-p, 0) - var(--e) - var(--w) - var(--hold)) / var(--w)), 1);
+    opacity: calc(var(--ks) * (1 - var(--past) * var(--dim)));
+    transform: translate3d(0, calc((1 - var(--ks)) * 7vh), 0)
+               scale(calc(1 - var(--past) * var(--shrink)));
+    transform-origin: left center;
+    will-change: opacity, transform;
+  }
+  .ledger--thin .ledger__item { --dim: 0.55; --shrink: 0.06; }
+  /* Phone: a tall ledger will not fit one viewport at reading size, so items
+     that have had their moment compress - smaller type, tighter padding.
+     Layout-affecting, deliberately, so the stack genuinely gets shorter.
+     --thin also dims (Act 2's insight); --compact only compresses (Board). */
+  @media (max-width: 860px) {
+    .ledger--thin .ledger__item, .ledger--compact .ledger__item {
+      font-size: calc(1rem - var(--past) * 0.22rem);
+      padding-block: calc(0.5em - var(--past) * 0.28em);
+    }
+  }
+
+  /* 3. Chrome. A small, quiet brand mark is present from the first screen
+     (Paul, 2026-09-05 round 3: a logo is branding, not concept-explanation).
+     The CTA pill is MEANING-bearing and stays earned: it latches open at the
+     end of Act 3 and never closes. The wordmark latch (data-earn="wordmark")
+     still fires and sets html.earned-wordmark, exactly as designed; nothing
+     visible consumes it now. The bar is a scrim, not a bar: reading sections
+     scroll full-height text under it, so solid canvas holds through the
+     chrome row and fades beneath it - the bottom padding is the fade's room. */
   .site-bar {
     position: fixed; inset: 0 0 auto 0; z-index: 40;
     display: flex; align-items: center; justify-content: space-between;
-    padding: var(--sc-3) var(--sc-gutter);
+    padding: var(--sc-3) var(--sc-gutter) calc(var(--sc-3) + var(--sc-6));
     font-family: var(--sc-font-text);
+    background: linear-gradient(to bottom,
+      var(--sc-canvas) 0%,
+      var(--sc-canvas) 52%,
+      color-mix(in oklab, var(--sc-canvas) 70%, transparent) 76%,
+      transparent 100%);
+    pointer-events: none;
   }
+  .site-bar > * { pointer-events: auto; }
   .site-bar__mark {
-    font-family: var(--sc-font-display); font-size: var(--sc-t-sm, 0.95rem);
-    letter-spacing: 0.08em; color: var(--sc-ink-soft);
+    font-family: var(--sc-font-display); font-size: 0.78rem;
+    letter-spacing: 0.1em; color: var(--sc-ink-soft); opacity: 0.72;
   }
   .site-bar__mark b { color: var(--sc-ink); font-weight: 500; }
   .site-bar__cta {
     font-size: 0.8rem; letter-spacing: 0.04em; color: var(--sc-ink-soft);
     border: 1px solid var(--sc-hairline-strong); border-radius: 999px;
-    padding: 0.5em 1.1em; text-decoration: none;
-    transition: color 0.2s ease, border-color 0.2s ease;
+    padding: 0.5em 1.1em; text-decoration: none; margin-left: auto;
+    opacity: 0; pointer-events: none; white-space: nowrap;
+    transition: color 0.2s ease, border-color 0.2s ease, opacity 600ms var(--sc-ease-out);
   }
+  html.earned-pill .site-bar__cta { opacity: 1; pointer-events: auto; }
   .site-bar__cta:hover { color: var(--sc-accent); border-color: var(--sc-accent); }
+  /* The concept name carries the page's accent wherever it is named
+     (Act 3's earn line, the pill) - Paul, round 7. */
+  .site-bar__cta em { color: var(--sc-accent); font-style: normal; }
+  @media (max-width: 860px) {
+    /* Sarah's full pill text fits a 390px row only if both chrome elements
+       tighten: smaller mark, smaller pill, no tracking, and a guaranteed gap
+       between them (first phone peek had them touching). */
+    .site-bar { gap: var(--sc-3); padding-block: var(--sc-2) calc(var(--sc-2) + var(--sc-6)); }
+    .site-bar__mark { font-size: 0.68rem; letter-spacing: 0.06em; flex: none; }
+    .site-bar__cta { font-size: 0.68rem; letter-spacing: 0; padding: 0.4em 0.8em; margin-left: 0; }
+  }
 
-  /* Act I ground: a faint drafting grid + a soft centre light, suggesting
-     structure and a lit room rather than a photograph we do not have yet. */
+  @media (prefers-reduced-motion: reduce) {
+    [data-drift], .ledger__item { transform: none !important; }
+  }
+  /* Phone type and drift overrides live in ONE block at the END of this
+     stylesheet - see there. They were first written here and silently lost
+     to the base rules below them at equal specificity: the same cascade
+     trap as V1's [data-sc-stage] collision, on our own rules this time. */
+
+  /* ---- shared atmosphere, carried from V1 ---- */
   .grid-ground {
-    position: absolute; inset: 0;
+    position: absolute; inset: -20% 0;
     background-image:
       linear-gradient(var(--sc-hairline) 1px, transparent 1px),
       linear-gradient(90deg, var(--sc-hairline) 1px, transparent 1px);
@@ -64,428 +139,313 @@
             mask-image: radial-gradient(ellipse 70% 60% at 50% 42%, #000 0%, transparent 78%);
   }
   .room-light {
-    position: absolute; inset: 0;
+    position: absolute; inset: -20% 0;
     background: radial-gradient(ellipse 60% 46% at 50% 34%,
-      color-mix(in oklab, var(--sc-accent) 10%, transparent) 0%,
-      transparent 68%);
+      color-mix(in oklab, var(--sc-accent) 10%, transparent) 0%, transparent 68%);
   }
 
-  /* Each beat (open, five symptoms, close) is a full absolute layer stacked
-     in the SAME box, so the engine's opacity-only cue crossfades between them
-     in place instead of the page laying all seven out in normal flow (which
-     would grow the frame's height and drift the centred content out from
-     under the reader as later cues fire - the bug this shape avoids). */
-  /* Do NOT set position here: [data-sc-stage] already carries the engine's
-     own position:sticky (that IS the pin mechanism), and redeclaring position
-     on the same selector at equal specificity, later in the cascade, silently
-     overrides it to "relative" and the whole act stops sticking - exactly the
-     failure mode the engine's own source comments warn about. Flex-centering
-     does not need position touched; .act1__frame's own position:relative
-     already gives the absolutely-positioned beats their containing block. */
-  .act1__stage { display: flex; align-items: center; justify-content: center; }
-  .act1__frame {
-    position: relative; z-index: 1;
-    width: min(920px, 86vw);
-    height: min(50vh, 420px);
-    text-align: center;
-  }
-  .act1__open {
-    position: absolute; inset: 0; display: flex; align-items: center; justify-content: center;
-    font-family: var(--sc-font-display); font-weight: 500;
-    font-size: clamp(2rem, 4.6vw, var(--sc-t-4xl, 3.6rem));
-    line-height: 1.06; letter-spacing: var(--sc-track-tight, -0.01em);
-    color: var(--sc-ink);
-    text-wrap: balance;
-  }
-  .act1__symptom {
-    position: absolute; inset: 0;
-    display: grid; grid-template-columns: auto 1fr; gap: var(--sc-4) var(--sc-5);
-    align-items: center; text-align: left; max-width: 62ch; margin-inline: auto;
-  }
-  .act1__symptom-num {
-    font-family: var(--sc-font-display); font-weight: 500;
-    font-size: clamp(1.4rem, 2.4vw, 2rem); color: var(--sc-accent);
-    line-height: 1; font-variant-numeric: tabular-nums; letter-spacing: 0.04em;
-  }
-  .act1__symptom-text {
-    font-family: var(--sc-font-text); font-size: clamp(1.05rem, 1.7vw, 1.35rem);
-    line-height: 1.5; color: var(--sc-ink);
-  }
-  .act1__close {
-    position: absolute; inset: 0; display: flex; align-items: center; justify-content: center;
-    font-family: var(--sc-font-display); font-style: italic; font-weight: 400;
-    font-size: clamp(1.5rem, 2.6vw, 2.1rem); color: var(--sc-ink-soft);
-    line-height: 1.2;
-  }
-
-  /* Transformation-lead layer: the drill-down under the fold. Visually a
-     different register on purpose - a quiet reading room, not a second
-     hero. Never labelled by any real reader's name anywhere in copy or
-     markup; internal reader-role names stay internal, including in
-     comments like this one. */
-  .layer-two {
-    border-top: 1px solid var(--sc-hairline);
-    padding-block: var(--sc-section);
-  }
-  .layer-two__eyebrow {
-    font-family: var(--sc-font-text); font-size: 0.78rem; letter-spacing: 0.14em;
-    text-transform: uppercase; color: var(--sc-ink-soft); margin-bottom: var(--sc-4);
-  }
-  .layer-two__grid {
-    display: grid; gap: var(--sc-6);
-    grid-template-columns: repeat(3, 1fr);
-  }
-  @media (max-width: 860px) { .layer-two__grid { grid-template-columns: 1fr; } }
-  .layer-two__item { border-left: 2px solid var(--sc-hairline-strong); padding-left: var(--sc-4); }
-  .layer-two__item h3 {
-    font-family: var(--sc-font-display); font-weight: 500; font-size: 1.15rem;
-    color: var(--sc-accent); margin: 0 0 var(--sc-2);
-  }
-  .layer-two__item p { font-family: var(--sc-font-text); color: var(--sc-ink-soft); line-height: 1.6; margin: 0; }
-
-  /* Honest scaffolding stub for Acts II-VII, so the page is a real, walkable
-     document for the verification harness while later acts are still being
-     built. Marked plainly - never presented as finished. */
-  .stub {
-    min-height: 70vh; display: flex; align-items: center; justify-content: center;
-    text-align: center; padding: var(--sc-section) var(--sc-gutter);
-  }
-  .stub__inner { max-width: 46ch; }
-  .stub h2 { font-family: var(--sc-font-display); color: var(--sc-ink-soft); font-weight: 500; }
-  .stub p { font-family: var(--sc-font-text); color: var(--sc-ink-soft); opacity: 0.6; font-size: 0.9rem; }
-
-  /* ---- Act II: two chains, one thinning, one whole. No position here -
-     [data-sc-stage] already carries the engine's sticky mechanism (see the
-     comment on .act1__stage above; same rule applies to every stage). ---- */
-  .act2__stage {
-    display: flex; flex-direction: column; align-items: center; justify-content: center;
-    gap: var(--sc-6); padding-inline: var(--sc-gutter);
-  }
-  .act2__head {
-    font-family: var(--sc-font-display); font-weight: 500;
-    font-size: clamp(1.6rem, 3.2vw, 2.6rem); line-height: 1.16;
-    color: var(--sc-ink); text-align: center; max-width: 34ch; text-wrap: balance;
-    position: relative; z-index: 1;
-  }
-  .act2__chains {
-    position: relative; z-index: 1;
-    display: grid; grid-template-columns: 1fr 1fr; gap: var(--sc-5);
-    width: min(920px, 94vw);
-  }
-  /* Deliberately NOT stacking to one column on phones: this act is pinned to
-     a single 100vh stage, and ten stacked rungs would overflow that box and
-     clip at the bottom. Both chains stay side by side at every width;
-     type and padding shrink instead so the whole thing keeps fitting. */
-  .act2__chain { display: flex; flex-direction: column; gap: var(--sc-2); min-width: 0; }
-  .act2__chain-label {
-    font-family: var(--sc-font-text); font-size: 0.62rem; letter-spacing: 0.1em;
-    text-transform: uppercase; color: var(--sc-ink-soft); margin: 0 0 var(--sc-1);
-  }
-  .act2__chain--a .act2__chain-label { color: color-mix(in oklab, var(--sc-ink-soft) 70%, transparent); }
-  .act2__chain--b .act2__chain-label { color: var(--sc-accent); }
-  .act2__rung {
-    opacity: var(--decay, 1);
-    border: 1px solid var(--sc-hairline); border-radius: 3px;
-    padding: var(--sc-2) var(--sc-3); background: color-mix(in oklab, var(--sc-surface) 70%, transparent);
-  }
-  .act2__rung > div { font-family: var(--sc-font-text); font-size: clamp(0.72rem, 1.6vw, 0.95rem); color: var(--sc-ink); line-height: 1.3; }
-  .act2__rung-tag {
-    display: block; font-size: 0.6rem; letter-spacing: 0.06em; text-transform: uppercase;
-    color: var(--sc-ink-soft); margin-bottom: 0.25em;
-  }
-  .act2__close {
-    position: relative; z-index: 1;
-    font-family: var(--sc-font-display); font-style: italic; font-weight: 400;
-    font-size: clamp(1.15rem, 2vw, 1.5rem); color: var(--sc-ink-soft);
-    text-align: center; max-width: 46ch; text-wrap: balance;
-  }
-
-  /* ---- Act III: one calm screen, deliberately quiet after two heavier
-     acts. Ordinary flow section, min-height so it reads as its own pause
-     rather than a footnote squeezed under Act II. ---- */
-  .act3 { min-height: 90vh; display: flex; align-items: center; }
-  .act3__wrap { text-align: center; max-width: 640px; margin-inline: auto; }
-  .act3__eyebrow {
-    font-family: var(--sc-font-text); font-size: 0.75rem; letter-spacing: 0.16em;
+  /* ---- shared type roles ---- */
+  .eyebrow {
+    font-family: var(--sc-font-text); font-size: 0.74rem; letter-spacing: 0.16em;
     text-transform: uppercase; color: var(--sc-accent); margin: 0 0 var(--sc-4);
   }
-  .act3__head {
+  .q {
     font-family: var(--sc-font-display); font-weight: 500;
-    font-size: clamp(1.9rem, 4vw, 2.9rem); line-height: 1.14;
-    color: var(--sc-ink); text-wrap: balance; margin: 0 0 var(--sc-3);
+    font-size: clamp(1.7rem, 3.6vw, 2.8rem); line-height: 1.12;
+    letter-spacing: var(--sc-track-snug); color: var(--sc-ink);
+    text-wrap: balance; margin: 0;
   }
-  .act3__sub {
-    font-family: var(--sc-font-text); font-size: clamp(1rem, 1.6vw, 1.2rem);
-    color: var(--sc-ink-soft); margin: 0 0 var(--sc-7); line-height: 1.5;
+  .q--xl { font-size: clamp(2rem, 4.6vw, 3.6rem); line-height: 1.06; letter-spacing: var(--sc-track-tight); }
+  .q--md { font-size: clamp(1.4rem, 2.8vw, 2.1rem); }
+  .answer {
+    font-family: var(--sc-font-text); font-size: clamp(1rem, 1.7vw, 1.2rem);
+    color: var(--sc-ink-soft); line-height: 1.55; margin: 0; text-wrap: pretty;
   }
-  .act3__earned {
+  .answer--ink { color: var(--sc-ink); }
+  .line-ital {
     font-family: var(--sc-font-display); font-style: italic; font-weight: 400;
-    font-size: clamp(1.1rem, 2vw, 1.4rem); color: var(--sc-ink);
-    border-top: 1px solid var(--sc-hairline); padding-top: var(--sc-5);
-    display: inline-block; margin: 0 auto;
+    font-size: clamp(1.15rem, 2.1vw, 1.6rem); color: var(--sc-ink-soft); line-height: 1.25; margin: 0;
   }
+  .fine {
+    font-family: var(--sc-font-text); font-style: italic; font-size: 0.85rem;
+    color: var(--sc-ink-soft); opacity: 0.8; margin: 0;
+  }
+  .stack > * + * { margin-top: var(--sc-5); }
 
-  /* ---- Act IV: one real lineage, four stacked beats. No position on
-     .act4__stage - same [data-sc-stage] rule as every other act. ---- */
-  .act4__stage {
-    display: flex; flex-direction: column; align-items: center; justify-content: center;
-    gap: var(--sc-6); padding-inline: var(--sc-gutter);
-  }
-  .act4__head {
-    font-family: var(--sc-font-display); font-weight: 500;
-    font-size: clamp(1.5rem, 3vw, 2.3rem); line-height: 1.18;
-    color: var(--sc-ink); text-align: center; max-width: 36ch; text-wrap: balance;
-  }
-  .act4__lineage { position: relative; width: min(680px, 92vw); height: 220px; }
-  .act4__step {
-    position: absolute; inset: 0;
-    display: flex; flex-direction: column; justify-content: center; gap: var(--sc-2);
-    border: 1px solid var(--sc-hairline); border-radius: 4px;
-    padding: var(--sc-5) var(--sc-6); background: color-mix(in oklab, var(--sc-surface) 55%, transparent);
-    text-align: center;
-  }
-  .act4__step-label {
-    font-family: var(--sc-font-text); font-size: 0.68rem; letter-spacing: 0.1em;
-    text-transform: uppercase; color: var(--sc-accent); margin: 0 0 var(--sc-1);
-  }
-  .act4__step-body {
-    font-family: var(--sc-font-text); font-size: clamp(0.95rem, 1.7vw, 1.15rem);
-    color: var(--sc-ink); line-height: 1.5; margin: 0;
-  }
-  .act4__step-meta {
-    font-family: var(--sc-font-text); font-size: 0.78rem; color: var(--sc-ink-soft); margin: var(--sc-1) 0 0;
-  }
-  .act4__close {
-    font-family: var(--sc-font-display); font-style: italic; font-weight: 400;
-    font-size: clamp(1.05rem, 1.9vw, 1.35rem); color: var(--sc-ink-soft);
-    text-align: center; max-width: 50ch; text-wrap: balance;
-  }
+  /* ---- pinned stage frames. NEVER set position or height on a
+     [data-sc-stage] class: the engine's own .sc-stage carries both and a
+     same-specificity redeclaration later in the cascade silently wins
+     (two real V1 bugs). Flex-centre only. ---- */
+  .stage { display: flex; align-items: center; justify-content: center; padding-inline: var(--sc-gutter); }
+  .frame { position: relative; z-index: 1; width: min(880px, 90vw); }
+  .frame--center { text-align: center; }
 
-  /* ---- Act V: the biggest Act, built as a sequence of flow beats. ---- */
-  .act5-intro__wrap { max-width: 680px; margin-inline: auto; text-align: center; }
-  .act5-intro__head {
-    font-family: var(--sc-font-display); font-weight: 500;
-    font-size: clamp(1.9rem, 4vw, 2.9rem); color: var(--sc-ink);
-    line-height: 1.14; text-wrap: balance; margin: 0 0 var(--sc-4);
+  /* ---- Act 1 ---- */
+  .act1__sub { margin-top: var(--sc-4); max-width: 52ch; margin-inline: auto; }
+  .act1__gaps { margin-top: var(--sc-6); max-width: 64ch; margin-inline: auto; }
+  .gap {
+    display: grid; grid-template-columns: auto 1fr; gap: var(--sc-3) var(--sc-4);
+    align-items: baseline; text-align: left;
+    font-family: var(--sc-font-text); font-size: clamp(0.95rem, 1.6vw, 1.15rem);
+    line-height: 1.45; color: var(--sc-ink);
   }
-  .act5-intro__body {
-    font-family: var(--sc-font-text); font-size: clamp(1rem, 1.6vw, 1.15rem);
-    color: var(--sc-ink-soft); line-height: 1.6; max-width: 56ch; margin-inline: auto;
+  .gap b { font-family: var(--sc-font-display); font-weight: 500; color: var(--sc-ink); }
+  .gap__num {
+    font-family: var(--sc-font-display); font-weight: 500; color: var(--sc-accent);
+    font-variant-numeric: tabular-nums; letter-spacing: 0.04em;
   }
+  .act1__close { margin-top: var(--sc-6); max-width: 46ch; margin-inline: auto; }
 
-  .act5-proof__wrap { max-width: 880px; margin-inline: auto; text-align: center; }
-  .act5-proof__label {
-    font-family: var(--sc-font-text); font-size: 0.72rem; letter-spacing: 0.14em;
-    text-transform: uppercase; color: var(--sc-accent); margin: 0 0 var(--sc-3);
+  /* ---- Value drivers (Act 1 follow-on) ---- */
+  .drivers { display: grid; grid-template-columns: repeat(3, 1fr); gap: var(--sc-5); margin-top: var(--sc-6); text-align: left; }
+  @media (max-width: 760px) { .drivers { grid-template-columns: 1fr; gap: var(--sc-4); } }
+  .driver { border-top: 1px solid var(--sc-hairline); padding-top: var(--sc-4); }
+  .driver__name { font-family: var(--sc-font-display); font-weight: 500; font-size: 1.05rem; color: var(--sc-accent); margin: 0 0 var(--sc-2); }
+  .driver__desc { font-family: var(--sc-font-text); font-size: 0.95rem; color: var(--sc-ink-soft); line-height: 1.5; margin: 0 0 var(--sc-3); }
+  .driver__fig { font-family: var(--sc-font-display); font-weight: 500; font-size: clamp(1.4rem, 2.4vw, 1.9rem); color: var(--sc-ink); font-variant-numeric: tabular-nums; margin: 0; }
+  .driver__fig small { font-family: var(--sc-font-text); font-weight: 400; font-size: 0.75rem; color: var(--sc-ink-soft); display: block; letter-spacing: 0.04em; }
+  .drivers__total { margin-top: var(--sc-6); max-width: 56ch; margin-inline: auto; }
+  .drivers__total b { color: var(--sc-ink); font-family: var(--sc-font-display); font-weight: 500; }
+
+  /* ---- Act 2 ---- */
+  .act2__lead { margin-top: var(--sc-4); }
+  .act2__intro { margin-top: var(--sc-3); max-width: 52ch; margin-inline: auto; }
+  .act2__chain { margin-top: var(--sc-5); width: min(600px, 100%); margin-inline: auto; }
+  .rung {
+    border: 1px solid var(--sc-hairline); border-radius: 3px;
+    padding: var(--sc-2) var(--sc-3);
+    background: color-mix(in oklab, var(--sc-surface) 70%, transparent);
+    font-family: var(--sc-font-text); font-size: clamp(0.88rem, 1.5vw, 1.02rem);
+    color: var(--sc-ink); line-height: 1.35; text-align: left;
   }
-  .act5-proof__head {
+  .act2__close { margin-top: var(--sc-5); max-width: 50ch; margin-inline: auto; }
+
+  /* ---- Act 3 ---- */
+  .act3__frame { max-width: 680px; }
+  .act3__frame .stack > * + * { margin-top: var(--sc-5); }
+  .earn {
     font-family: var(--sc-font-display); font-weight: 500;
-    font-size: clamp(1.4rem, 2.6vw, 1.9rem); color: var(--sc-ink);
-    line-height: 1.2; text-wrap: balance; margin: 0 0 var(--sc-3);
+    font-size: clamp(1.15rem, 2.1vw, 1.5rem); color: var(--sc-ink); line-height: 1.32;
+    border-top: 1px solid var(--sc-hairline); padding-top: var(--sc-5); margin: 0;
   }
-  .act5-proof__sub {
-    font-family: var(--sc-font-text); font-size: 1rem; color: var(--sc-ink-soft);
-    line-height: 1.55; max-width: 56ch; margin: 0 auto var(--sc-6);
-  }
-  .act5-proof__frame {
-    margin: 0 auto; max-width: 760px; border-radius: 8px; overflow: hidden;
+  .earn em { color: var(--sc-accent); font-style: normal; }
+
+  /* ---- Act 4 (question + intro), then two full surfaces ---- */
+  .act4__frame { max-width: 720px; }
+  .act4__intro { margin-top: var(--sc-5); max-width: 56ch; margin-inline: auto; }
+
+  .surface { padding-block: calc(var(--sc-section) * 0.6); }
+  .surface__wrap { max-width: 880px; margin-inline: auto; text-align: center; }
+  .shot {
+    margin: var(--sc-6) auto 0; max-width: 760px; border-radius: 8px; overflow: hidden;
     border: 1px solid var(--sc-hairline-strong); box-shadow: 0 24px 60px -20px rgba(0,0,0,0.6);
+    background: var(--sc-surface);
   }
-  .act5-proof__chrome {
-    display: flex; gap: 6px; padding: 10px 14px; background: var(--sc-surface);
-    border-bottom: 1px solid var(--sc-hairline);
+  .shot__chrome { display: flex; gap: 6px; padding: 10px 14px; background: var(--sc-surface); border-bottom: 1px solid var(--sc-hairline); }
+  .shot__chrome span { width: 9px; height: 9px; border-radius: 50%; background: var(--sc-hairline-strong); }
+  .shot img { display: block; width: 100%; height: auto; }
+  .implication { margin-top: var(--sc-5); max-width: 58ch; margin-inline: auto; }
+  .consequence {
+    margin: var(--sc-5) auto 0; max-width: 52ch; text-align: left;
+    border-left: 2px solid var(--sc-accent); padding-left: var(--sc-4);
   }
-  .act5-proof__chrome span { width: 9px; height: 9px; border-radius: 50%; background: var(--sc-hairline-strong); }
-  .act5-proof__frame img { display: block; width: 100%; height: auto; }
-  .act5-proof__caption {
-    font-family: var(--sc-font-text); font-size: 0.8rem; color: var(--sc-ink-soft);
-    margin-top: var(--sc-3); opacity: 0.75;
+  .consequence__label { font-family: var(--sc-font-text); font-size: 0.7rem; letter-spacing: 0.14em; text-transform: uppercase; color: var(--sc-accent); margin: 0 0 var(--sc-2); }
+  .depth {
+    list-style: none; margin: var(--sc-5) auto 0; padding: 0;
+    display: flex; flex-wrap: wrap; gap: var(--sc-2); justify-content: center;
   }
-
-  .act5-trace__wrap { max-width: 760px; margin-inline: auto; text-align: center; }
-  .act5-trace__panel {
-    margin-top: var(--sc-6); border: 1px solid var(--sc-hairline); border-radius: 8px;
-    padding: var(--sc-6); background: color-mix(in oklab, var(--sc-surface) 60%, transparent);
-    text-align: left;
-  }
-  .act5-trace__steps { display: flex; flex-wrap: wrap; gap: var(--sc-2); margin-bottom: var(--sc-5); }
-  .act5-trace__step {
+  .depth li {
     font-family: var(--sc-font-text); font-size: 0.85rem; color: var(--sc-ink-soft);
-    background: transparent; border: 1px solid var(--sc-hairline-strong); border-radius: 999px;
-    padding: 0.5em 1.1em; cursor: pointer; transition: color 0.2s ease, border-color 0.2s ease, background 0.2s ease;
+    border: 1px solid var(--sc-hairline); border-radius: 999px; padding: 0.45em 1em;
   }
-  .act5-trace__step:hover { color: var(--sc-ink); }
-  .act5-trace__step.is-active { color: var(--sc-accent-ink); background: var(--sc-accent); border-color: var(--sc-accent); }
-  .act5-trace__answer p {
-    font-family: var(--sc-font-text); font-size: clamp(1rem, 1.6vw, 1.15rem);
-    color: var(--sc-ink); line-height: 1.6; margin: 0;
+  .caption {
+    font-family: var(--sc-font-text); font-size: 0.9rem; color: var(--sc-ink-soft);
+    margin: var(--sc-5) auto 0; max-width: 52ch; opacity: 0.85;
+  }
+  .quote {
+    margin: var(--sc-6) auto 0; max-width: 56ch; text-align: left;
+    border-top: 1px solid var(--sc-hairline); padding-top: var(--sc-5);
+  }
+  .quote p {
+    font-family: var(--sc-font-display); font-style: italic; font-weight: 400;
+    font-size: clamp(1.05rem, 1.9vw, 1.35rem); color: var(--sc-ink); line-height: 1.4; margin: 0;
+  }
+  .quote footer { font-family: var(--sc-font-text); font-size: 0.82rem; color: var(--sc-ink-soft); margin-top: var(--sc-3); }
+  .qa { margin: var(--sc-6) auto 0; max-width: 56ch; text-align: left; border: 1px solid var(--sc-hairline); border-radius: 8px; padding: var(--sc-5) var(--sc-6); }
+  .qa__q { font-family: var(--sc-font-display); font-weight: 500; font-size: 1.1rem; color: var(--sc-accent); margin: 0 0 var(--sc-2); }
+  .qa__a { font-family: var(--sc-font-text); font-size: clamp(1rem, 1.6vw, 1.12rem); color: var(--sc-ink); line-height: 1.55; margin: 0; }
+
+  /* ---- the compressed beat: three rapid glimpses ---- */
+  .beat__frame { max-width: 760px; }
+  .beat__lines { margin-top: var(--sc-5); text-align: left; max-width: 60ch; margin-inline: auto; }
+  .beat__line { font-family: var(--sc-font-text); font-size: clamp(1rem, 1.7vw, 1.18rem); color: var(--sc-ink); line-height: 1.5; padding-block: var(--sc-2); }
+  .beat__line b { font-family: var(--sc-font-display); font-weight: 500; }
+  /* minmax(0, 1fr), not 1fr: a 1fr track's minimum is the tile's min-content,
+     so an uppercase tracked label (or, later, a real capture's intrinsic
+     width) widens the track and pushes the third tile off a 390px screen -
+     Annabelle's Paired-Check measured exactly that. Zero-minimum tracks and
+     min-width:0 tiles cannot overflow, whatever lands inside them. */
+  .glimpses { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--sc-3); margin-top: var(--sc-6); }
+  .glimpse {
+    min-width: 0; overflow: hidden;
+    aspect-ratio: 16 / 10; border-radius: 6px; border: 1px solid var(--sc-hairline-strong);
+    background: var(--sc-surface); display: grid; place-items: center;
+    font-family: var(--sc-font-text); font-size: 0.7rem; letter-spacing: 0.1em;
+    text-transform: uppercase; color: var(--sc-ink-soft); text-align: center; padding: var(--sc-2);
+  }
+  .glimpse img { display: block; width: 100%; height: 100%; object-fit: cover; }
+
+  /* Copy-heavy pinned frames drift less on desktop so their headline never
+     rides up under the chrome scrim at p=1 (Annabelle measured Act 2's H2 at
+     35px against a 48px solid scrim on 1440x900; the Board sat at 78px,
+     inside the fade). Class + attribute outranks the bare attribute rule, so
+     this wins wherever it sits in the cascade. The phone block at the end of
+     the stylesheet already handles the same frames at 390px. */
+  @media (min-width: 861px) {
+    .frame--tall[data-drift="slow"] { --drift: 8vh; }
+    .act2 .q { font-size: clamp(1.5rem, 3vw, 2.3rem); }
   }
 
-  .act5-value__wrap { max-width: 900px; margin-inline: auto; text-align: center; }
-  .act5-value__grid { display: grid; grid-template-columns: 1fr 1fr; gap: var(--sc-5); margin-top: var(--sc-6); text-align: left; }
-  @media (max-width: 760px) { .act5-value__grid { grid-template-columns: 1fr; } }
-  .act5-value__card { border: 1px solid var(--sc-hairline); border-radius: 8px; padding: var(--sc-6); }
-  .act5-value__card-label {
-    font-family: var(--sc-font-display); font-weight: 500; font-size: 1.1rem;
-    color: var(--sc-accent); margin: 0 0 var(--sc-4);
-  }
-  .act5-value__scenarios { display: flex; flex-wrap: wrap; gap: var(--sc-2); margin-bottom: var(--sc-4); }
-  .act5-value__scenarios span {
-    font-family: var(--sc-font-text); font-size: 0.72rem; letter-spacing: 0.06em;
-    color: var(--sc-ink-soft); border: 1px solid var(--sc-hairline); border-radius: 4px; padding: 0.3em 0.7em;
-  }
-  .act5-value__card-body { font-family: var(--sc-font-text); color: var(--sc-ink-soft); line-height: 1.6; margin: 0; font-size: 0.95rem; }
-
-  /* ---- Act VI: one board card, 30 seconds. ---- */
-  .act6 { min-height: 90vh; display: flex; align-items: center; }
-  .act6__wrap { max-width: 640px; margin-inline: auto; }
-  .act6__list {
-    list-style: none; counter-reset: board; margin: 0 0 var(--sc-6); padding: 0;
-    border: 1px solid var(--sc-hairline); border-radius: 8px; overflow: hidden;
-  }
-  .act6__list li {
+  /* ---- board ---- */
+  /* The ledger's un-arrived items reserve their layout space, so a centred
+     frame puts the headline near the top of the stage from p=0 with dark
+     room under it. Biasing the centring region down lands the question and
+     "A board should be able to answer:" a line or two lower and keeps them
+     on screen longer (Paul, round 7). */
+  .board .stage { padding-top: 12vh; }
+  .board__lead { margin-top: var(--sc-4); }
+  .board__list { margin-top: var(--sc-5); width: min(660px, 100%); counter-reset: board; margin-inline: auto; }
+  .board__item {
     counter-increment: board;
     display: flex; align-items: baseline; gap: var(--sc-4);
-    font-family: var(--sc-font-text); font-size: clamp(1rem, 1.6vw, 1.15rem);
-    color: var(--sc-ink); line-height: 1.5;
-    padding: var(--sc-4) var(--sc-5); border-bottom: 1px solid var(--sc-hairline);
+    font-family: var(--sc-font-text); font-size: clamp(0.95rem, 1.6vw, 1.12rem);
+    color: var(--sc-ink); line-height: 1.42; text-align: left;
+    padding: var(--sc-3) var(--sc-4); border-bottom: 1px solid var(--sc-hairline);
   }
-  .act6__list li:last-child { border-bottom: none; }
-  .act6__list li::before {
+  .board__item::before {
     content: counter(board); flex: none;
     font-family: var(--sc-font-display); font-weight: 500; color: var(--sc-accent);
     font-size: 0.9rem; font-variant-numeric: tabular-nums;
   }
-  .act6__close {
-    font-family: var(--sc-font-display); font-weight: 500;
-    font-size: clamp(1.2rem, 2.2vw, 1.6rem); color: var(--sc-ink);
-    text-align: center; margin: 0;
+  .board__close {
+    margin-top: var(--sc-5); font-family: var(--sc-font-display); font-weight: 500;
+    font-size: clamp(1.15rem, 2.2vw, 1.6rem); color: var(--sc-ink);
+  }
+  .board__after { margin-top: var(--sc-3); max-width: 46ch; margin-inline: auto; }
+
+  /* ---- the recap, and the silence after it ---- */
+  .recap__frame { max-width: 720px; }
+  .recap {
+    font-family: var(--sc-font-display); font-weight: 400;
+    font-size: clamp(1.2rem, 2.3vw, 1.7rem); color: var(--sc-ink-soft); line-height: 1.42;
+    text-wrap: pretty; margin: 0;
+  }
+  .recap__name {
+    display: block; margin-top: var(--sc-5);
+    font-weight: 500; color: var(--sc-ink);
+    font-size: clamp(1.35rem, 2.7vw, 2rem); line-height: 1.3; text-wrap: balance;
   }
 
-  /* ---- Act VII: the earned peak. No position set on .act7__stage - see
-     the standing lesson from Act I: [data-sc-stage] already carries the
-     engine's own position:sticky, and redeclaring position here at equal
-     specificity would silently break the pin. ---- */
-  .act7__stage {
-    /* No height here - see the standing lesson: the engine's own
-       .sc-stage class (added via JS to every [data-sc-stage] element)
-       already sets height:100svh, and a same-specificity height rule
-       here, later in the cascade, silently wins and inflates the stage
-       to the pinned section's full scroll-track height instead of one
-       viewport slice. Caught on mobile: the peak line rendered centered
-       inside a ~3545px box instead of the 844px viewport, pushing it
-       almost entirely off-screen. */
-    display: flex; flex-direction: column;
-    align-items: center; justify-content: center; text-align: center;
-    gap: var(--sc-7); padding-inline: var(--sc-gutter);
-  }
-  .act7__lines {
-    display: flex; flex-direction: column; gap: var(--sc-3);
-    max-width: 620px;
-  }
-  .act7__line {
-    font-family: var(--sc-font-text); font-size: clamp(1rem, 1.9vw, 1.25rem);
-    color: var(--sc-ink-soft); line-height: 1.5; margin: 0;
-  }
-  .act7__peak {
-    font-family: var(--sc-font-display); font-weight: 500;
-    font-size: clamp(1.6rem, 3.6vw, 2.6rem); color: var(--sc-ink);
-    line-height: 1.25; text-wrap: balance; max-width: 18ch; margin: 0;
-  }
-
-  /* ---- The CTA page: reads standalone for a forwarded link, so it gets
-     its own generous rhythm rather than borrowing an Act's cadence. Uses
-     the engine's own .sc-stack + data-sc-in stagger for reveal - no
-     custom fade CSS needed here, only layout and type. ---- */
-  .cta-page { padding-block: calc(var(--sc-section) * 1.4) var(--sc-section); }
-  .cta-page__wrap { max-width: 760px; }
-  .cta-page__recap {
-    font-family: var(--sc-font-text); font-size: clamp(0.95rem, 1.6vw, 1.05rem);
-    color: var(--sc-ink-soft); line-height: 1.65; text-align: center;
-    max-width: 62ch; margin: 0 auto calc(var(--sc-section) * 0.9);
-    padding-bottom: var(--sc-7); border-bottom: 1px solid var(--sc-hairline);
-  }
-  .cta-page__head {
-    font-family: var(--sc-font-display); font-weight: 500;
-    font-size: clamp(1.7rem, 3.4vw, 2.4rem); color: var(--sc-ink);
-    text-align: center; text-wrap: balance; margin: 0;
-  }
-  .cta-page__lede {
-    font-family: var(--sc-font-text); font-size: clamp(1.05rem, 1.9vw, 1.25rem);
-    color: var(--sc-ink-soft); text-align: center; line-height: 1.55;
-    max-width: 52ch; margin-inline: auto;
-  }
-  .cta-page__note {
-    font-family: var(--sc-font-text); font-size: 0.9rem; color: var(--sc-ink-soft);
-    text-align: center; opacity: 0.85; max-width: 52ch; margin-inline: auto;
-  }
-  .cta-page__free {
-    font-family: var(--sc-font-display); font-weight: 500;
-    font-size: 1.05rem; color: var(--sc-accent); text-align: center;
-  }
-  .cta-page__buttons {
-    display: flex; flex-wrap: wrap; justify-content: center; gap: var(--sc-4);
-  }
-  .cta-page__btn {
+  /* ---- reading sections: visible from the start, drift as they pass, never
+     re-hide (Paul's round-2 boundary). Padding is kept modest on purpose:
+     empty canvas scrolling past is itself a dead step. ---- */
+  .read { padding-block: calc(var(--sc-section) * 0.7); }
+  .read__wrap { max-width: 760px; margin-inline: auto; }
+  .cta__head { text-align: center; }
+  .cta__lede { text-align: center; max-width: 52ch; margin-inline: auto; }
+  .cta__buttons { display: flex; flex-wrap: wrap; justify-content: center; align-items: center; gap: var(--sc-4); }
+  .btn {
     font-family: var(--sc-font-text); font-size: 0.95rem; font-weight: 500;
     text-decoration: none; border-radius: 999px; padding: 0.85em 1.8em;
     display: inline-flex; align-items: center; transition: transform 0.2s ease, opacity 0.2s ease;
   }
-  .cta-page__btn:hover { transform: translateY(-1px); }
-  .cta-page__btn--primary { background: var(--sc-accent); color: var(--sc-accent-ink); }
-  .cta-page__btn--primary:hover { opacity: 0.92; }
-  .cta-page__btn--secondary {
-    background: transparent; color: var(--sc-ink);
-    border: 1px solid var(--sc-hairline-strong);
-  }
-  .cta-page__btn--secondary:hover { border-color: var(--sc-accent); color: var(--sc-accent); }
-  .cta-page__grid {
+  .btn:hover { transform: translateY(-1px); }
+  .btn--primary { background: var(--sc-accent); color: var(--sc-accent-ink); }
+  .btn--primary:hover { opacity: 0.92; }
+  .share { font-family: var(--sc-font-text); font-size: 0.85rem; color: var(--sc-ink-soft); text-decoration: underline; text-underline-offset: 0.25em; }
+  .share:hover { color: var(--sc-ink); }
+  .cta__grid {
     display: grid; grid-template-columns: 1fr 1fr; gap: var(--sc-6);
     padding-top: var(--sc-7); border-top: 1px solid var(--sc-hairline);
   }
-  @media (max-width: 760px) { .cta-page__grid { grid-template-columns: 1fr; } }
-  .cta-page__col h3 {
+  @media (max-width: 760px) { .cta__grid { grid-template-columns: 1fr; } }
+  .cta__col h3 {
     font-family: var(--sc-font-display); font-weight: 500; font-size: 1.05rem;
-    color: var(--sc-accent); margin: 0 0 var(--sc-2);
+    color: var(--sc-accent); margin: 0 0 var(--sc-3);
   }
-  .cta-page__col-note {
-    font-family: var(--sc-font-text); font-size: 0.85rem; color: var(--sc-ink-soft);
-    line-height: 1.5; margin: 0 0 var(--sc-3); opacity: 0.85;
-  }
-  .cta-page__list {
-    list-style: none; margin: 0; padding: 0;
-    display: flex; flex-direction: column; gap: var(--sc-2);
-  }
-  .cta-page__list li {
-    font-family: var(--sc-font-text); font-size: 0.92rem; color: var(--sc-ink);
+  .list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: var(--sc-2); }
+  .list li {
+    font-family: var(--sc-font-text); font-size: 0.95rem; color: var(--sc-ink);
     line-height: 1.5; padding-left: 1.2em; position: relative;
   }
-  .cta-page__list li::before {
-    content: "-"; position: absolute; left: 0; color: var(--sc-ink-soft);
-  }
-  .cta-page__list--numbered { counter-reset: dowith; }
-  .cta-page__list--numbered li { counter-increment: dowith; }
-  .cta-page__list--numbered li::before {
-    content: counter(dowith) "."; color: var(--sc-accent);
-    font-family: var(--sc-font-display); font-size: 0.85rem;
-  }
-  .cta-page__qual {
-    display: grid; grid-template-columns: 1fr 1fr; gap: var(--sc-6);
-    padding-top: var(--sc-7); border-top: 1px solid var(--sc-hairline);
-  }
-  @media (max-width: 760px) { .cta-page__qual { grid-template-columns: 1fr; } }
-  .cta-page__qual-head {
+  .list li::before { content: "-"; position: absolute; left: 0; color: var(--sc-ink-soft); }
+  .list--num { counter-reset: n; }
+  .list--num li { counter-increment: n; }
+  .list--num li::before { content: counter(n) "."; color: var(--sc-accent); font-family: var(--sc-font-display); font-size: 0.85rem; }
+  .qual { display: grid; grid-template-columns: 1fr 1fr; gap: var(--sc-6); }
+  @media (max-width: 760px) { .qual { grid-template-columns: 1fr; } }
+  .qual__head {
     font-family: var(--sc-font-display); font-weight: 500; font-size: 1rem;
     color: var(--sc-accent); margin: 0 0 var(--sc-3);
   }
-  .cta-page__qual-head--no { color: var(--sc-ink-soft); }
-  .cta-page__intentional {
-    font-family: var(--sc-font-text); font-size: 0.9rem; color: var(--sc-ink-soft);
-    text-align: center; opacity: 0.85; padding-top: var(--sc-5);
+  .qual__head--no { color: var(--sc-ink-soft); }
+
+  /* ---- takeaway ---- */
+  .take__line {
+    font-family: var(--sc-font-display); font-weight: 500;
+    font-size: clamp(1.6rem, 3.4vw, 2.6rem); color: var(--sc-ink);
+    line-height: 1.2; text-wrap: balance; max-width: 22ch; margin: 0 auto;
   }
-  .cta-page__foot {
+  .foot {
     font-family: var(--sc-font-text); font-size: 0.75rem; color: var(--sc-ink-soft);
     text-align: center; opacity: 0.55; padding: var(--sc-6) var(--sc-gutter) var(--sc-5);
+  }
+
+  /* ==== PHONE OVERRIDES - LAST ON PURPOSE. Every rule here shares
+     specificity with a base rule above; being last is what makes it win.
+     Do not move this block up. ====
+     The pinned frames carry more copy than an 844px stage has room for at
+     desktop sizes, and the full drift rode Act 1's headline up under the
+     chrome scrim (mobile frame 017 on the wired scan). Type tightens on the
+     copy-heavy frames and every pinned frame drifts less - still ~30px per
+     flick, well above the perceptibility floor. Act 1 carries the Tour
+     deck's full gap wording, the longest copy on any pinned frame: at
+     1.7rem/0.9rem it ran ~690px tall; ~550px clears the chrome at p=1. */
+  @media (max-width: 860px) {
+    [data-drift="slow"] { --drift: 10vh; }
+    [data-drift="fast"] { --drift: 24vh; }
+    .q { font-size: clamp(1.45rem, 6vw, 1.7rem); }
+    .q--xl { font-size: 1.55rem; line-height: 1.08; }
+    .act1__sub { font-size: 0.9rem; margin-top: var(--sc-3); }
+    .act1__gaps { margin-top: var(--sc-4); }
+    .gap { font-size: 0.86rem; line-height: 1.38; gap: var(--sc-2) var(--sc-3); }
+    .act1__close { font-size: 1rem; margin-top: var(--sc-4); }
+    .act2__intro { font-size: 0.95rem; }
+    .act2__close { font-size: 0.95rem; }
+    .glimpse { font-size: 0.56rem; letter-spacing: 0.04em; padding: var(--sc-1); }
+  }
+
+  /* ==== SHORT-VIEWPORT OVERRIDES - ALSO LAST ON PURPOSE. ====
+     A laptop browser at 1440 wide shows ~790px of page, not the 900 the
+     harness had been using; Act 2's frame (~700px) put its last line on the
+     bottom edge in Paul's own screenshots (round 7). Copy-heavy pinned
+     frames compress on short desktop viewports so every line stays inside
+     the stage with the chrome scrim clear above it. Verified at 1440x790. */
+  @media (min-width: 861px) and (max-height: 820px) {
+    .q { font-size: clamp(1.5rem, 2.8vw, 2.2rem); }
+    .q--xl { font-size: clamp(1.8rem, 3.6vw, 2.8rem); }
+    .act2 .q { font-size: clamp(1.4rem, 2.6vw, 2rem); }
+    .act1__sub, .act2__intro, .act2__close, .board__after { font-size: 1rem; }
+    .act2__lead { font-size: 1.2rem; }
+    .gap { font-size: 1rem; }
+    .ledger { gap: var(--sc-1); }
+    .rung { padding: var(--sc-1) var(--sc-3); font-size: 0.92rem; }
+    .act2__chain { margin-top: var(--sc-4); }
+    .board .stage { padding-top: 8vh; }
+    .board__item { padding: var(--sc-2) var(--sc-4); font-size: 1rem; }
+    .board__close { font-size: 1.2rem; }
+    .beat__line { font-size: 1rem; }
+    .glimpses { margin-top: var(--sc-4); }
   }
 </style>
 </head>
@@ -494,494 +454,463 @@
 <span data-sc-progress></span>
 <div class="sc-grain" aria-hidden="true"></div>
 
+<!-- Chrome. The brand mark is present from the first screen; the pill is
+     earned - it latches on the END of the act carrying data-earn="pill" and
+     is inert to pointer and assistive tech until then. Pill text per Sarah's
+     build note 2; it fits a 390px row at the phone type size, so there is
+     one label, not a long/short pair. -->
 <header class="site-bar">
   <span class="site-bar__mark"><b>MissionControl</b><sup style="font-size:0.6em">TM</sup></span>
-  <a class="site-bar__cta" href="#cta">Bring us a slice</a>
+  <a class="site-bar__cta" href="#cta" aria-hidden="true" tabindex="-1">See Your Own <em>Investment Conscience</em></a>
 </header>
 
 <main id="top">
 
-  <!-- ACT I - "Do you recognize this?"
-       Device: pin (the beat is an argument, not an image), plus a kinetic
-       headline on the open and one restrained parallax layer for depth.
-       Staged: nothing, per the GTM brief - copy only. Must not name
-       MissionControl, say AI, say Investment Conscience, or say Playbook
-       anywhere in this act's copy. -->
-  <section data-sc-act="pin" data-sc-span="6.4" data-sc-drift="#0B0A08">
-    <div data-sc-stage class="act1__stage">
-      <div class="grid-ground" data-sc-parallax="-0.5" aria-hidden="true"></div>
-      <div class="room-light" data-sc-parallax="0.3" aria-hidden="true"></div>
-
-      <div class="act1__frame">
-
-        <h1 class="act1__open" data-sc-cue="0 0.09 0" data-sc-kinetic="lines">
-          Too often, capital decisions are made first. The evidence comes later.
+  <!-- ACT I - "Do I recognize this?"  pin. Copy: Sarah V2 Act I (Tour deck
+       wording, Slides 5-7). The question and its sub-line are PRESENT at
+       p=0 - the hero never fades in from an empty screen. Three gaps arrive
+       as a ledger and stay; the self-qualification closes. No product name
+       anywhere in this act. -->
+  <section class="act1" data-sc-act="pin" data-sc-span="3.4" data-sc-drift="#0B0A08">
+    <div data-sc-stage class="stage">
+      <div class="grid-ground" data-sc-parallax="-3" aria-hidden="true"></div>
+      <div class="room-light" data-sc-parallax="1.8" aria-hidden="true"></div>
+      <div class="frame frame--center" data-drift="slow">
+        <h1 class="q q--xl" data-sc-cue="0 1 0 0" data-sc-kinetic="lines">
+          Are you experiencing the same structural gaps other transformation leaders run into?
         </h1>
-
-        <div class="act1__symptom" data-sc-cue="0.06 0.24">
-          <span class="act1__symptom-num">01</span>
-          <p class="act1__symptom-text">The business case arrives after the decision. Leadership has already chosen. The case is assembled to justify it.</p>
+        <p class="answer act1__sub" data-sc-cue="0 1 0 0">Three gaps show up in almost every transformation, regardless of how good the team is.</p>
+        <div class="ledger act1__gaps" aria-label="The three gaps">
+          <div class="ledger__item gap" style="--e:0.16; --w:0.1"><span class="gap__num">01</span><div><b>Speed.</b> Decisions wait on synthesis. The longer it takes to actually solve the right pain points, the longer the cost of those pain points accumulates.</div></div>
+          <div class="ledger__item gap" style="--e:0.32; --w:0.1"><span class="gap__num">02</span><div><b>Alignment.</b> Everyone holds a different artifact - or even a different version of the same artifact - and it takes way too long to get everybody on the same page before they can begin making decisions.</div></div>
+          <div class="ledger__item gap" style="--e:0.48; --w:0.1"><span class="gap__num">03</span><div><b>Sequencing.</b> The order of investments gets set by whoever is loudest, whatever problem seems most urgent, or whichever vendor is ready first. Making the right investments in the wrong order introduces delay and rework.</div></div>
         </div>
+        <p class="line-ital act1__close" data-sc-cue="0.7 1 0.3 0">If you recognize all three, keep reading. If you don't, that's useful information too - this probably isn't for you yet.</p>
+      </div>
+    </div>
+  </section>
 
-        <div class="act1__symptom" data-sc-cue="0.20 0.38">
-          <span class="act1__symptom-num">02</span>
-          <p class="act1__symptom-text">The loudest executive wins. Funding follows influence, not evidence.</p>
+  <!-- ACT I follow-on - what closing the gaps is worth. Reading section, so
+       the reader can hold on a number. Copy: Sarah V2 (Tour deck Slides
+       8-12), figures verified against the LIVE Investment Calculator
+       2026-09-05 round 3c: $142,917 / $256,000 / $150,000; $548,917 /
+       $54,892 / 9.0x. FLAGGED: the heading question is Tina's (Sarah
+       supplied no heading). RESOLVED (Paul, round 5): the italic note no
+       longer names the Investment Calculator - an unearned surface inside
+       Act I (Constitution 4.7) - it says "calculated live for your
+       organization" instead. -->
+  <section class="surface drivers-act" data-sc-act="flow" data-sc-drift="#0C0A08">
+    <div class="sc-wrap surface__wrap" data-drift>
+      <h2 class="q q--md">And what is closing them worth?</h2>
+      <div class="drivers">
+        <div class="driver">
+          <p class="driver__name">Time-to-Relief</p>
+          <p class="driver__desc">Reduction in pain duration from accelerated decisions and earlier relief.</p>
+          <p class="driver__fig">$142,917 <small>for this scenario</small></p>
         </div>
-
-        <div class="act1__symptom" data-sc-cue="0.34 0.52">
-          <span class="act1__symptom-num">03</span>
-          <p class="act1__symptom-text">The technology becomes the objective. A new capability captures attention before anyone has defined what must become true.</p>
+        <div class="driver">
+          <p class="driver__name">Knowledge-Transfer</p>
+          <p class="driver__desc">Reduction in hours required for executive comprehension and alignment.</p>
+          <p class="driver__fig">$256,000 <small>for this scenario</small></p>
         </div>
-
-        <div class="act1__symptom" data-sc-cue="0.48 0.66">
-          <span class="act1__symptom-num">04</span>
-          <p class="act1__symptom-text">The people closest to the Pain never reach the room. Their evidence is compressed, summarized and reinterpreted on its way up.</p>
+        <div class="driver">
+          <p class="driver__name">Wrong-Sequence Insurance</p>
+          <p class="driver__desc">Reduction in rework, delays and waste from out-of-sequence investments.</p>
+          <p class="driver__fig">$150,000 <small>for this scenario</small></p>
         </div>
+      </div>
+      <p class="answer drivers__total">Together: <b>$548,917</b> total risk-adjusted value, on a <b>$54,892</b> recommended investment - <b>9.0x</b> net ROI, in this scenario.</p>
+      <p class="fine" style="margin-top: var(--sc-4)">Illustrative example - the numbers are calculated live for your organization.</p>
+    </div>
+  </section>
 
-        <div class="act1__symptom" data-sc-cue="0.62 0.82">
-          <span class="act1__symptom-num">05</span>
-          <p class="act1__symptom-text">Nobody can prove the last investment delivered. The assumptions, the promises and the baseline are gone. Only the spend remains.</p>
+  <!-- ACT II - "Why does this happen?"  pin, the thinning ledger. Copy:
+       Sarah V2 Act II, verbatim. Six stages accumulate; each earlier one dims
+       and, on phones, compresses as the next arrives - the compression
+       happens TO the evidence. Nobody on the chain is named or blamed. -->
+  <section class="act2" data-sc-act="pin" data-sc-span="4.4" data-sc-drift="#0E0C09">
+    <div data-sc-stage class="stage">
+      <div class="grid-ground" data-sc-parallax="-2.4" aria-hidden="true"></div>
+      <div class="frame frame--center frame--tall" data-drift="slow">
+        <h2 class="q" data-sc-cue="0 1 0 0" data-sc-kinetic="lines">
+          Why do these gaps persist even with smart people and good consultants?
+        </h2>
+        <p class="line-ital act2__lead" data-sc-cue="0.04">The problem is not effort. It is distance.</p>
+        <p class="answer act2__intro" data-sc-cue="0.09">The people closest to the pain are rarely the people deciding what to fund next. In between, the evidence has to travel - and it loses something at every step.</p>
+        <div class="ledger ledger--thin act2__chain" aria-label="How evidence travels">
+          <div class="ledger__item rung" style="--e:0.18; --w:0.09">A firsthand observation, from someone doing the work.</div>
+          <div class="ledger__item rung" style="--e:0.29; --w:0.09">A workshop note, written down by someone else.</div>
+          <div class="ledger__item rung" style="--e:0.40; --w:0.09">A finding, written up by someone else again.</div>
+          <div class="ledger__item rung" style="--e:0.51; --w:0.09">A summary, compressed for someone who wasn't there.</div>
+          <div class="ledger__item rung" style="--e:0.62; --w:0.09">A recommendation, built to persuade someone even further away.</div>
+          <div class="ledger__item rung" style="--e:0.73; --w:0.09">An investment room, where the decision gets made.</div>
         </div>
+        <p class="answer act2__close" data-sc-cue="0.85 1 0.3 0">Each step up compresses what the last one knew. By the time it reaches the room, the person deciding is working from the thinnest version of what actually happened.</p>
+      </div>
+    </div>
+  </section>
 
-        <p class="act1__close" data-sc-cue="0.76 1">
-          If you recognize three of these, keep reading.
+  <!-- ACT III - "What would better look like?"  pin, one calm screen. Copy:
+       Sarah V2 Act III, verbatim. Three lines accumulate; "Investment
+       Conscience" is named once, on the last line. The CTA pill latches when
+       this act's travel ENDS (data-earn="pill") - Paul's ruling, round 2. -->
+  <section class="act3" data-sc-act="pin" data-sc-span="2.8" data-sc-drift="#0B0A08" data-earn="pill">
+    <div data-sc-stage class="stage">
+      <div class="room-light" data-sc-parallax="1.2" aria-hidden="true"></div>
+      <div class="frame frame--center act3__frame" data-drift="slow">
+        <div class="stack">
+          <h2 class="q" data-sc-cue="0 1 0 0" data-sc-kinetic="lines">What would it take to keep the reasoning instead of losing it?</h2>
+          <p class="answer" data-sc-cue="0.16">Not better presentations. A durable structure - one that holds the evidence, the reasoning, the context, and the trail back to where it came from, so none of it thins out on the way up.</p>
+          <p class="answer" data-sc-cue="0.38">You already paid to create much of this evidence. The problem is that it is trapped in static documents.</p>
+          <p class="earn" data-sc-cue="0.6">We call the alternative your <em>Investment Conscience</em> - persistent access to the knowledge and evidence that should inform a capital decision, at the moment you're making it, not filed away in a deck nobody opens again.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ACT IV - "Can I trust the findings?"  pin: the act's question and its
+       intro. Copy: Sarah V2 Act IV headline + intro, verbatim. The two full
+       surfaces follow as reading sections with reveal wipes - the copy is
+       too much for one pinned phone screen, and the Section 6 order
+       (question, visual, implication, depth) reads top-to-bottom anyway. -->
+  <section class="act4" data-sc-act="pin" data-sc-span="2.4" data-sc-drift="#0C0A08">
+    <div data-sc-stage class="stage">
+      <div class="grid-ground" data-sc-parallax="-2" aria-hidden="true"></div>
+      <div class="frame frame--center act4__frame" data-drift="slow">
+        <h2 class="q" data-sc-cue="0 1 0 0" data-sc-kinetic="lines">Where did this finding come from - and can I trace it back to reality?</h2>
+        <p class="answer act4__intro" data-sc-cue="0.2">Every important conclusion should be traceable back to the operational evidence that justified it. Not "consultants recommended it." Specifically: this pain, in this function, described by this person, in these words.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- SURFACE 1 - Findings Map. Copy: Sarah V2, verbatim. Real screenshot
+       from the source Mission's live product. Consequence and quote are
+       real, from that Mission's own Pain Point entry and workshop
+       transcript (carried from V1, already on the live site) - no dollar
+       figure, because that Mission was never funded. PULL FROM HBFT still
+       open: the stakeholder's first name + last initial for the attribution
+       (role-only shown until then; no disclaimer language in the attribution). -->
+  <section class="surface" data-sc-act="flow" data-sc-drift="#0B0A08">
+    <div class="sc-wrap surface__wrap" data-drift>
+      <h2 class="q">What did we actually learn, and where did each conclusion come from?</h2>
+      <figure class="shot" data-sc-reveal="up" data-sc-reveal-at="0.14 0.36">
+        <div class="shot__chrome"><span></span><span></span><span></span></div>
+        <img src="assets/findings-map.jpg" width="1640" height="760" alt="A Findings Map showing pain flowing between finance functions, with one finding's evidence panel open beside it.">
+      </figure>
+      <p class="answer implication">Click the conclusion, and the evidence underneath it is right there - who said it, in what session, connected to which function and which data flow. A leader who wasn't in the room can follow the exact chain from a stakeholder's own words to the finding built on them. Nothing here has to be taken on faith. This is what a MissionControl Findings Map makes visible.</p>
+      <div class="consequence">
+        <p class="consequence__label">The cost of leaving this one in place</p>
+        <p class="answer answer--ink">A slow project-finance refresh hides margin drift. It gets explained at quarter end instead of caught the day it appears - and by then the window to act on it has already closed.</p>
+      </div>
+      <ul class="depth"><li>Which pain points connect across functions?</li><li>What data moves between them?</li><li>Does this exact conclusion trace back to the transcript, word for word?</li></ul>
+      <p class="caption">Every conclusion here is inspectable, not just visible. Click it, and the reasoning behind it is right there to audit.</p>
+      <blockquote class="quote">
+        <p>"By the time I see the margin number it is already history. I need it while I can still do something about it."</p>
+        <footer>Project Executive, from the workshop transcript</footer>
+      </blockquote>
+    </div>
+  </section>
+
+  <!-- SURFACE 2 - Investment Map. Copy: Sarah V2, verbatim. Real Tier Grid
+       from the source Mission's richest workstream. PULL FROM HBFT still
+       open: the actual fundable-percentage figure for the Mission shown -
+       not quoted here rather than quote "~20%" as a pattern. -->
+  <section class="surface" data-sc-act="flow" data-sc-drift="#0C0A08">
+    <div class="sc-wrap surface__wrap" data-drift>
+      <h2 class="q">Given what we now know, where should we invest first?</h2>
+      <figure class="shot" data-sc-reveal="up" data-sc-reveal-at="0.14 0.36">
+        <div class="shot__chrome"><span></span><span></span><span></span></div>
+        <img src="assets/investment-map.jpg" width="1920" height="715" alt="An Investment Map tier grid sorting stories into Move Now, Plan Soon and Sequence tiers by impact and complexity, with one story's panel open beside it.">
+      </figure>
+      <p class="answer implication">The pain that is foundational and high-leverage goes first - not the pain that was proposed first, or argued for loudest. Prioritization stops being a gut call and becomes visible, explainable, and challengeable.</p>
+      <div class="qa">
+        <p class="qa__q">Why fund this first?</p>
+        <p class="qa__a">Because it is foundational and high-leverage: relieving this pain also reduces several downstream pain points.</p>
+      </div>
+      <ul class="depth"><li>Which pain is foundational?</li><li>What belongs in the first fundable wave?</li><li>What should wait?</li></ul>
+      <p class="caption">The map makes the "why this first" argument visible enough to defend in a room full of people who weren't there for the discovery work.</p>
+    </div>
+  </section>
+
+  <!-- (The V1 three-pill trace stood here through round 5. Cut on
+       Annabelle's whole-page Paired-Check verdict, 2026-09-05: it restated
+       the Investment Map's answer and the Findings Map's quote word for
+       word, its heading was a statement not a question, it needed usage
+       instructions, and it broke the "reasoning does not stop there"
+       transition Sarah wrote to land right after the Investment Map.) -->
+
+  <!-- THE COMPRESSED BEAT - pin, fast. Copy: Sarah V2 "And the reasoning
+       does not stop there", verbatim, split at its sentence boundaries into
+       three rapid lines that accumulate under an opening line present at
+       p=0. Three glimpse tiles arrive with them - PULL FROM HBFT for all
+       three (ICR score comparison, the Calculator's single number, a
+       Playbook Explorer pane); the Calculator's existence as an HBFT screen
+       is unconfirmed, generated graphic is the fallback. "Playbook" is
+       named here once, as the copy has it. -->
+  <section class="beat" data-sc-act="pin" data-sc-span="2.6" data-sc-drift="#0B0A08">
+    <div data-sc-stage class="stage">
+      <div class="room-light" data-sc-parallax="1.2" aria-hidden="true"></div>
+      <div class="frame frame--center frame--tall beat__frame" data-drift="slow">
+        <h2 class="q q--md" data-sc-cue="0 1 0 0" data-sc-kinetic="lines">And the reasoning does not stop there.</h2>
+        <div class="ledger beat__lines" aria-label="The same discipline, three more places">
+          <p class="ledger__item beat__line" style="--e:0.14; --w:0.08">Click through and the same discipline holds: <b>why this initiative outranks that one</b>, and what happens the moment an assumption changes.</p>
+          <p class="ledger__item beat__line" style="--e:0.32; --w:0.08"><b>What solving this pain is worth</b>, reduced to one number - value that leads cost from the first month, on a base case the tool itself calls conservative.</p>
+          <p class="ledger__item beat__line" style="--e:0.50; --w:0.08"><b>Where the capability behind a recommendation lives</b> - in your Playbook, next to the pain point it responds to.</p>
+        </div>
+        <div class="ledger glimpses" aria-hidden="true">
+          <div class="ledger__item glimpse" style="--e:0.14; --w:0.08">ICR score comparison<br>capture pending</div>
+          <div class="ledger__item glimpse" style="--e:0.32; --w:0.08">Calculator, one number<br>capture pending</div>
+          <div class="ledger__item glimpse" style="--e:0.50; --w:0.08">Playbook Explorer pane<br>capture pending</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- THE BOARD - pin, ledger without dimming (compresses on phones). Copy:
+       Sarah V2 Board section, verbatim - ends on "should not disappear after
+       funding" and flows into Fit, then the recap. -->
+  <section class="board" data-sc-act="pin" data-sc-span="3.6" data-sc-drift="#0C0A08">
+    <div data-sc-stage class="stage">
+      <div class="grid-ground" data-sc-parallax="-2" aria-hidden="true"></div>
+      <div class="frame frame--center frame--tall" data-drift="slow">
+        <h2 class="q" data-sc-cue="0 1 0 0" data-sc-kinetic="lines">What should a board be able to see?</h2>
+        <p class="answer board__lead" data-sc-cue="0 1 0 0">A board should be able to answer:</p>
+        <div class="ledger ledger--compact board__list" aria-label="What a board can answer">
+          <div class="ledger__item board__item" style="--e:0.12; --w:0.09">Is the pain real, expensive, and measured?</div>
+          <div class="ledger__item board__item" style="--e:0.23; --w:0.09">Can the evidence for the pain be traced back to the stakeholders who identified or experienced it?</div>
+          <div class="ledger__item board__item" style="--e:0.34; --w:0.09">Does the recommendation target foundational and high-leverage pain first?</div>
+          <div class="ledger__item board__item" style="--e:0.45; --w:0.09">Are the metrics behind the cost of pain and value of pain relief transparent, and were they shaped by the people who understand the operation?</div>
+          <div class="ledger__item board__item" style="--e:0.56; --w:0.09">Are the financial benefits used to justify the investment preserved so realized value can later be compared with the business case?</div>
+        </div>
+        <p class="board__close" data-sc-cue="0.72 1 0.25 0">Evidence before funding. Accountability after funding.</p>
+        <p class="answer board__after" data-sc-cue="0.8 1 0.25 0">The reasoning used to authorize an investment should not disappear after funding.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- FIT (Constitution Section 13) - reading section. Copy: Sarah V2,
+       verbatim. Sits BEFORE the offer (Paul, round 3): the reader earns the
+       invitation by passing self-qualification. Placed before the recap so
+       the recap can sit IMMEDIATELY before the offer with its silence -
+       the only order that satisfies both round-3 instructions literally.
+       FLAGGED: the alternative (recap straight after the Board, then Fit) is
+       a two-section swap. -->
+  <section class="read fit" data-sc-act="flow" data-sc-drift="#0B0A08">
+    <div class="sc-wrap read__wrap" data-drift="slow">
+      <div class="qual">
+        <div>
+          <p class="qual__head">This is for you if</p>
+          <ul class="list">
+            <li>You have started a business transformation.</li>
+            <li>You have real capital decisions ahead.</li>
+            <li>You have already done some operational discovery, current-state documentation, process analysis, workshop work, or equivalent evidence gathering.</li>
+            <li>You want future business-transformation investments to be approached with greater fiduciary discipline.</li>
+            <li>You want the ability to compare realized value with the value used to justify or forecast the investment.</li>
+          </ul>
+        </div>
+        <div>
+          <p class="qual__head qual__head--no">This is probably not for you yet if</p>
+          <ul class="list">
+            <li>You have not started a business transformation.</li>
+            <li>You do not have meaningful capital-allocation decisions ahead.</li>
+            <li>You have no operational discovery evidence yet - no transcripts, pain points, current-state findings, process documentation, or equivalent source material.</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- THE RECAP, AND THE SILENCE AFTER IT - pin. Copy: Sarah V2 pre-CTA
+       paragraph, verbatim, ending on the "missing operating system" line -
+       the SOLE "what is MissionControl" moment (Paul, round 3, two moments
+       folded into one). The paragraph is present at p=0 and drifts slowly;
+       its closing sentence lands at p~0.3; then NOTHING new arrives for the
+       rest of the act - the "let it sit" beat Leta asked for, declared as an
+       authored hold so the scans read it as intended. The wordmark latch
+       hook lives on the closing sentence now. -->
+  <section class="recap-act" data-sc-act="pin" data-sc-span="2.8" data-sc-drift="#0B0A08">
+    <div data-sc-stage class="stage" data-sc-verify-state="recap-silence" data-sc-verify-hold="true">
+      <div class="room-light" data-sc-parallax="1.6" aria-hidden="true"></div>
+      <div class="frame frame--center recap__frame" data-drift="slow">
+        <p class="recap">
+          <span data-sc-cue="0 1 0 0" style="display:block">You came in recognizing three gaps. You have now seen why they persist, what a durable structure looks like, and how far the evidence can be traced, kept intact from the first observation to the investment decision, and after it is funded.</span>
+          <!-- &trade; not <sup>: the kinetic line split rebuilds the element
+               from textContent and would flatten a <sup> into plain "TM". -->
+          <span class="recap__name" data-sc-cue="0.22 1 0.3 0" data-sc-kinetic="lines" data-earn="wordmark">MissionControl&trade; is the missing operating system between what your people know and where you invest.</span>
         </p>
-
       </div>
     </div>
   </section>
 
-  <!-- ACT I, layer two - the drill-down (internally "the transformation-lead
-       layer"; the label itself is never printed). Ordinary flow section,
-       not pinned: this is the only act that reads like a document, on
-       purpose. -->
-  <section class="sc-section layer-two" data-sc-act="flow" data-sc-drift="#0B0A08">
-    <div class="sc-wrap">
-      <p class="layer-two__eyebrow">In your own words</p>
-      <div class="layer-two__grid" data-sc-in data-sc-stagger="80">
-        <div class="layer-two__item">
-          <h3>Speed</h3>
-          <p>Decisions wait on synthesis. By the time the deck is built, the moment to decide has often already passed.</p>
+  <!-- THE OFFER (Constitution Section 12) - reading section: visible from
+       the start, drifts, never re-hides. Copy: Sarah V2 CTA, verbatim -
+       Q3 sharpened, "no charge" is the first bullet. Button pre-populates
+       subject and body; nothing auto-sends. Share utility per Sarah's own
+       call: a plain link, no role, no second CTA. Address confirmed by Paul
+       2026-09-05 (round 5). -->
+  <section id="cta" class="read cta" data-sc-act="flow" data-sc-drift="#0B0A08">
+    <div class="sc-wrap read__wrap" data-drift="slow">
+      <div class="stack">
+        <h2 class="q cta__head">See your own Investment Conscience at work.</h2>
+        <p class="answer cta__lede answer--ink">Apply this reasoning to your own organization.</p>
+        <p class="answer cta__lede">We will use a subset of your own operational discovery so that what you see reflects your reality.</p>
+        <div class="cta__buttons">
+          <a class="btn btn--primary" id="cta-btn" href="mailto:paul.szews@kenwayconsulting.com?subject=Investment%20Conscience%20-%20a%2030-minute%20session%20on%20our%20own%20evidence">Start the conversation</a>
+          <a class="share" id="share-btn" href="#">Share this page</a>
         </div>
-        <div class="layer-two__item">
-          <h3>Alignment</h3>
-          <p>Everyone holds a different artifact. The meeting argues about whose picture is right instead of making the call.</p>
-        </div>
-        <div class="layer-two__item">
-          <h3>Sequencing</h3>
-          <p>Order gets set by who's loudest, not by real dependency, and the mistake surfaces only after the money's spent.</p>
-        </div>
-      </div>
-    </div>
-  </section>
-
-  <!-- ACT II - "Why this happens"
-       CEO-reader layer: one line, greet, holds through the act (kept short
-       on purpose - this act's real weight is the visual, not more prose).
-       Transformation-lead-as-hero constraint: chain A's bottom rung is
-       their real work (workshops, discovery), never named, never blamed -
-       the compression
-       happens TO it on the way up. Chain B is the contrast: the same
-       evidence staying whole. Neither chain names MissionControl; this is
-       the shape of the problem and the shape of the alternative, not a
-       product intro. Device: pin, with two parallax-adjacent chains and a
-       kinetic headline - three device families now in play across the page
-       (pin, flow, parallax, kinetic), never the same one twice running. -->
-  <section data-sc-act="pin" data-sc-span="5.6" data-sc-drift="#0E0C09">
-    <div data-sc-stage class="act2__stage">
-      <div class="grid-ground" data-sc-parallax="-0.4" aria-hidden="true"></div>
-
-      <h2 class="act2__head" data-sc-cue="0 1 0 0" data-sc-kinetic="lines">
-        The people who allocate capital are rarely the people closest to the Pain.
-      </h2>
-
-      <div class="act2__chains">
-        <div class="act2__chain act2__chain--a">
-          <p class="act2__chain-label">What actually happens</p>
-          <div class="act2__rung" style="--decay:1">
-            <div data-sc-cue="0.14 0.30"><span class="act2__rung-tag">Where it starts</span>Workshops and frontline discovery</div>
-          </div>
-          <div class="act2__rung" style="--decay:0.82">
-            <div data-sc-cue="0.24 0.40"><span class="act2__rung-tag">Rises as</span>A team summary</div>
-          </div>
-          <div class="act2__rung" style="--decay:0.64">
-            <div data-sc-cue="0.34 0.50"><span class="act2__rung-tag">Rises as</span>A program update</div>
-          </div>
-          <div class="act2__rung" style="--decay:0.46">
-            <div data-sc-cue="0.44 0.60"><span class="act2__rung-tag">Rises as</span>A business case</div>
-          </div>
-          <div class="act2__rung" style="--decay:0.28">
-            <div data-sc-cue="0.54 0.70"><span class="act2__rung-tag">Arrives as</span>A capital decision</div>
-          </div>
-        </div>
-
-        <div class="act2__chain act2__chain--b">
-          <p class="act2__chain-label">What could hold instead</p>
-          <div class="act2__rung" style="--decay:1"><div data-sc-cue="0.14 0.30">Pain</div></div>
-          <div class="act2__rung" style="--decay:1"><div data-sc-cue="0.24 0.40">Findings</div></div>
-          <div class="act2__rung" style="--decay:1"><div data-sc-cue="0.34 0.50">Investment</div></div>
-          <div class="act2__rung" style="--decay:1"><div data-sc-cue="0.44 0.60">Value</div></div>
-          <div class="act2__rung" style="--decay:1"><div data-sc-cue="0.54 0.70">Value realized</div></div>
-        </div>
-      </div>
-
-      <p class="act2__close" data-sc-cue="0.66 1">
-        By the time it reaches the room, the chain between lived Pain and requested capital may be nearly invisible.
-      </p>
-    </div>
-  </section>
-
-  <!-- ACT III - "The missing capability". One screen, on purpose (spec: do
-       not over-philosophize). Plain flow + reveal, not pinned - the calm
-       after two heavier acts is itself part of the pacing. Must not say
-       "Learning Loop" or explain the Playbook taxonomy yet - just name the
-       capability and earn the one line about what it means. -->
-  <section class="sc-section act3" data-sc-act="flow" data-sc-drift="#0B0A08">
-    <div class="sc-wrap act3__wrap">
-      <div class="sc-stack" data-sc-in data-sc-stagger="90">
-        <p class="act3__eyebrow">The missing capability</p>
-        <h2 class="act3__head">Your organization needs an Investment Conscience.</h2>
-        <p class="act3__sub">A shared source of truth for capital allocation.</p>
-        <p class="act3__earned">A conscience means acting with knowledge.</p>
-      </div>
-    </div>
-  </section>
-
-  <!-- ACT IV - "You may already have the raw material"
-       Staged: one REAL lineage from the source client's own Playbook
-       content (not invented) - a real workshop quote becoming a real Pain
-       Point entry, User Story and New Capability. The source client stays
-       "a demo Mission" per the ban list - never named on the page,
-       including in comments like this one. The free CTA is SEEDED here, not
-       asked (no button yet) - the visitor should think "we already have
-       some of this" before Act VII ever makes the ask. Device: pin, the
-       same stacked-cue crossfade pattern as Act I - a real `reveal` wipe
-       wants a full-bleed image, not four text cards, so reusing the honest
-       fit rather than reaching for reveal just to claim a new device. Page
-       tally stands at pin, flow, parallax, kinetic; reveal, pan and count
-       are still open for a beat that actually wants them (Act V's staged
-       maps are the likely home). -->
-  <section data-sc-act="pin" data-sc-span="4.6" data-sc-drift="#0C0A07">
-    <div data-sc-stage class="act4__stage">
-      <h2 class="act4__head" data-sc-cue="0 1 0 0" data-sc-kinetic="lines">
-        You have already paid for the evidence. It is trapped in documents.
-      </h2>
-
-      <div class="act4__lineage">
-        <div class="act4__step" data-sc-cue="0.10 0.30">
-          <p class="act4__step-label">01 - A workshop transcript</p>
-          <p class="act4__step-body">"By the time I see the margin number it is already history. I need it while I can still do something about it."</p>
-          <p class="act4__step-meta">Project Executive, from a demo Mission's own discovery work</p>
-        </div>
-        <div class="act4__step" data-sc-cue="0.26 0.46">
-          <p class="act4__step-label">02 - Becomes a Pain Point entry</p>
-          <p class="act4__step-body">Slow project-finance refresh hides margin drift and delays corrective action.</p>
-          <p class="act4__step-meta">Stakeholder: Project Executive. Process: Daily Close.</p>
-        </div>
-        <div class="act4__step" data-sc-cue="0.42 0.62">
-          <p class="act4__step-label">03 - Becomes a User Story</p>
-          <p class="act4__step-body">As a Project Executive, I can review a daily project-finance refresh with current margin and WIP signals so that margin drift is caught the day it appears rather than explained at quarter end.</p>
-        </div>
-        <div class="act4__step" data-sc-cue="0.58 0.78">
-          <p class="act4__step-label">04 - Becomes a New Capability</p>
-          <p class="act4__step-body">A daily project-finance truth cockpit that protects margin and reduces surprise decisions.</p>
-        </div>
-      </div>
-
-      <p class="act4__close" data-sc-cue="0.76 1">
-        Structure makes reasoning possible. You do not need new evidence to start - you need this evidence connected.
-      </p>
-    </div>
-  </section>
-
-  <!-- ACT V - "MissionControl makes it actionable". The biggest single Act
-       on the page (spec's nine decision questions). Built as a sequence of
-       flow beats rather than cramming everything into one pin - this is
-       the one place the page slows down and shows real proof, not a
-       cinematic rush. Every staged surface here is checked against the
-       honesty table: Findings Map and Investment Map are REAL screenshots
-       from the source client's live product surfaces (not mockups), the
-       evidence trace uses REAL entries from that same source in
-       narrator-register wording, Value Model and Value Tracker show
-       STRUCTURE only - no dollar figures, since the source client was
-       never actually funded and has no realized value. -->
-
-  <section class="sc-section act5-intro" data-sc-act="flow" data-sc-drift="#0B0A08">
-    <div class="sc-wrap act5-intro__wrap">
-      <div class="sc-stack" data-sc-in data-sc-stagger="80">
-        <p class="act3__eyebrow">MissionControl makes it actionable</p>
-        <h2 class="act5-intro__head">Fund the few moves that matter most.</h2>
-        <p class="act5-intro__body">In every Workstream we have analyzed, a handful of pain domains carried three quarters to nine tenths of all measured Pain. Fund those first.</p>
-      </div>
-    </div>
-  </section>
-
-  <!-- Findings Map: real screenshot from the source client's live product,
-       reveal wipe - the first genuine use of the reveal device on the page
-       (a real image, not text cards). -->
-  <section class="sc-section act5-proof" data-sc-act="flow" data-sc-drift="#0C0A08">
-    <div class="sc-wrap act5-proof__wrap">
-      <div class="sc-stack" data-sc-in data-sc-stagger="80">
-        <p class="act5-proof__label">What is really happening</p>
-        <h3 class="act5-proof__head">Pain as a system, not a list.</h3>
-        <p class="act5-proof__sub">How information moves between functions today, where Pain originates, and which pain points interconnect - from a demo Mission's own Findings Map.</p>
-      </div>
-      <figure class="act5-proof__frame" data-sc-reveal="up" data-sc-reveal-at="0.1 0.6">
-        <div class="act5-proof__chrome"><span></span><span></span><span></span></div>
-        <img src="assets/findings-map.jpg" alt="A Findings Map showing pain flowing between finance functions, from a demo Mission." loading="lazy">
-      </figure>
-      <p class="act5-proof__caption">Static preview of a live, drillable Findings Map. No client or company name appears on it.</p>
-    </div>
-  </section>
-
-  <!-- Investment Map: real screenshot from the source client's live product
-       (all 8 demo-Mission workstreams actually have one - verified live
-       before staging this, per the GTM brief's own ask). RE-CAPTURED
-       2026-09-04 evening per Annabelle's Paired-Check fix 1: the original
-       crop showed the sparsest of the 8 workstreams (T4 Watch: 1, every
-       other tier: 0) directly under a "fundable first wave" headline - an
-       honest screenshot that nonetheless read as an empty product. This
-       crop uses the richest workstream (Finance Platform, Data, Controls
-       & Global Operations - 4 of 19 stories in the fundable set, spread
-       across T1 Move Now and T3 Sequence) and is cropped to the grid only,
-       excluding the admin toolbar's "Ask Sarah" button and narrator bar so
-       the page never shows a live-agent affordance even in a screenshot.
-       Old crop kept locally as assets/investment-map-old-sparse.jpg.bak,
-       not shipped, not git-tracked (repo image policy). -->
-  <section class="sc-section act5-proof" data-sc-act="flow" data-sc-drift="#0E0C09">
-    <div class="sc-wrap act5-proof__wrap">
-      <div class="sc-stack" data-sc-in data-sc-stagger="80">
-        <p class="act5-proof__label">What should we fund next, and why</p>
-        <h3 class="act5-proof__head">Foundational and high-leverage Pain, sorted into a fundable first wave.</h3>
-        <p class="act5-proof__sub">Every recommendation traces back to the evidence behind it - not a black-box score.</p>
-      </div>
-      <figure class="act5-proof__frame" data-sc-reveal="up" data-sc-reveal-at="0.1 0.6">
-        <div class="act5-proof__chrome"><span></span><span></span><span></span></div>
-        <img src="assets/investment-map.jpg" alt="An Investment Map tier grid showing several stories sorted into Move Now and Sequence tiers by impact and complexity, from a demo Mission." loading="lazy">
-      </figure>
-      <p class="act5-proof__caption">Static preview of a live Investment Map. Tier and fundable-set logic shown; no dollar figures are read from this demo Mission, since it was never actually funded.</p>
-    </div>
-  </section>
-
-  <!-- Evidence trace: genuinely interactive (real click, not scroll-cued),
-       staged - real entries from the source client, narrator-register
-       wording, explicitly never a live agent on this page. -->
-  <section class="sc-section act5-trace" data-sc-act="flow" data-sc-drift="#0B0A08">
-    <div class="sc-wrap act5-trace__wrap">
-      <p class="act5-proof__label">How would you defend it</p>
-      <h3 class="act5-proof__head">Why? Why that? Show me the evidence.</h3>
-      <p class="act5-proof__sub">A staged trace using real entries from a demo Mission - this is what the questioning looks like, not a live conversation on this page.</p>
-      <div class="act5-trace__panel" data-trace>
-        <div class="act5-trace__steps">
-          <button type="button" class="act5-trace__step is-active" data-step="0">Why fund this first?</button>
-          <button type="button" class="act5-trace__step" data-step="1">Why that pain point?</button>
-          <button type="button" class="act5-trace__step" data-step="2">Show me the evidence.</button>
-        </div>
-        <div class="act5-trace__answer">
-          <p data-answer="0">It sits in the fundable first wave - foundational Pain with high leverage, meaning relieving it also relieves Pain downstream.</p>
-          <p data-answer="1" hidden>A daily project-finance refresh view is missing, so margin drift is caught late instead of the day it appears - a Project Executive pain point, scored and evidenced, not asserted.</p>
-          <p data-answer="2" hidden>Project Executive, workshop discovery: "By the time I see the margin number it is already history. I need it while I can still do something about it." Traced straight to the Pain Point entry behind the recommendation.</p>
-        </div>
-      </div>
-    </div>
-  </section>
-
-  <!-- Value Model + Value Tracker: STRUCTURE only, per the honesty table.
-       No dollar figures from any source client anywhere here. -->
-  <section class="sc-section act5-value" data-sc-act="flow" data-sc-drift="#101217">
-    <div class="sc-wrap act5-value__wrap">
-      <div class="sc-stack" data-sc-in data-sc-stagger="80">
-        <p class="act5-proof__label">What Value, and did it deliver</p>
-        <h3 class="act5-proof__head">Value Model and Value Tracker, shown as structure.</h3>
-        <p class="act5-proof__sub">This demo Mission was never actually funded, so there is no realized Value to show - what follows is the shape, not invented numbers.</p>
-      </div>
-      <div class="act5-value__grid">
-        <div class="act5-value__card">
-          <p class="act5-value__card-label">Custom Value Model</p>
-          <div class="act5-value__scenarios">
-            <span>Conservative</span><span>Balanced</span><span>Ambitious</span>
-          </div>
-          <p class="act5-value__card-body">Finance contributes the metrics, Operations contributes effort and capacity, frontline validates lived reality, leadership sets the strategic parameters. When someone asks how the numbers were built, the answer is: everyone in the room built them.</p>
-        </div>
-        <div class="act5-value__card">
-          <p class="act5-value__card-label">Value Tracker</p>
-          <div class="act5-value__scenarios">
-            <span>Hypothesis</span><span>Baseline</span><span>Target</span><span>Actual</span>
-          </div>
-          <p class="act5-value__card-body">What a Mission preserves at the moment of funding: the promise, the assumptions behind it, and the baseline it will be measured against - so the question "did it deliver?" has somewhere to land later.</p>
-        </div>
-      </div>
-    </div>
-  </section>
-
-  <script>
-    // Act V evidence trace: real click interaction, not scroll-driven.
-    (function () {
-      var panel = document.querySelector('[data-trace]');
-      if (!panel) return;
-      var steps = panel.querySelectorAll('.act5-trace__step');
-      var answers = panel.querySelectorAll('[data-answer]');
-      steps.forEach(function (btn) {
-        btn.addEventListener('click', function () {
-          steps.forEach(function (b) { b.classList.remove('is-active'); });
-          btn.classList.add('is-active');
-          var target = btn.getAttribute('data-step');
-          answers.forEach(function (a) {
-            a.hidden = a.getAttribute('data-answer') !== target;
-          });
-        });
-      });
-    })();
-  </script>
-
-  <!-- ACT VI - "What a board should be able to see". One card, 30 seconds,
-       adds nothing new (spec: this Act summarizes, it does not add). The
-       Value Tracker line is framed as what a Mission PRESERVES, never as a
-       live feature - it is not deployed (honesty table). -->
-  <section class="sc-section act6" data-sc-act="flow" data-sc-drift="#0B0A08">
-    <div class="sc-wrap act6__wrap">
-      <div class="sc-stack" data-sc-in data-sc-stagger="70">
-        <p class="act3__eyebrow">What a board should be able to see</p>
-        <ol class="act6__list">
-          <li>The Pain is real, and measured.</li>
-          <li>The evidence traces to the people closest to it.</li>
-          <li>The recommendation targets foundational and high-leverage Pain first.</li>
-          <li>The Value assumptions are transparent, and the people who will live with them helped write them.</li>
-          <li>What was promised is preserved at the moment of funding, against the baseline set before it - so it can be checked later.</li>
-        </ol>
-        <p class="act6__close">Evidence before funding. Accountability after funding.</p>
-      </div>
-    </div>
-  </section>
-
-  <!-- ACT VII - "The final realization". The one line held back until now
-       (spec S14: earned, not opened with) - the page's single engineered
-       peak. Stacked-cue pin, same honest pattern as Acts I and IV, kinetic
-       on the last line for real weight since this is the line the whole
-       page has been building toward. -->
-  <section data-sc-act="pin" data-sc-span="4.2" data-sc-drift="#0B0A08">
-    <div data-sc-stage class="act7__stage">
-      <!-- Single-value cues: fade in and HOLD, on purpose - these five
-           lines accumulate into one visible chain rather than replacing
-           each other, so the final peak line lands on a full argument
-           already standing on screen, not an empty stage. -->
-      <div class="act7__lines">
-        <p class="act7__line" data-sc-cue="0.04">Your people know where the Pain is.</p>
-        <p class="act7__line" data-sc-cue="0.16">Finance knows where its effects appear.</p>
-        <p class="act7__line" data-sc-cue="0.28">Your operational-discovery artifacts already contain the evidence.</p>
-        <p class="act7__line" data-sc-cue="0.40">Your Playbook preserves that evidence as an Investment Conscience.</p>
-        <p class="act7__line" data-sc-cue="0.52">MissionControl turns it into prioritized, defensible decisions about what to fund next.</p>
-      </div>
-      <h2 class="act7__peak" data-sc-cue="0.78 1" data-sc-kinetic="lines">
-        MissionControl is the missing operating system between what your people know and where you invest.
-      </h2>
-    </div>
-  </section>
-
-  <!-- THE CTA PAGE - stands alone for a forwarded link (spec: someone can
-       arrive here with no Acts I-III behind them). Ordinary flow, not
-       pinned - this is a page to read and act on, not a cinematic beat.
-       Primary button destination: reused the same mailto address already
-       approved for demo.ourmission.live's CTA, with wording matched to
-       THIS ask (sending evidence, not booking a walkthrough). Flagged as
-       a default pending confirmation; Millie ruled to keep it as-is
-       overnight 2026-09-04 under Paul's own standing "don't wake me for
-       non-blocking calls" policy, NOT Paul's own direct word - logged in
-       Millie's huddle doc for his morning review and easy to revisit.
-       Secondary button is a genuine, working mechanism with no
-       destination to guess: it opens the
-       reader's own email client pre-addressed to nobody, pre-filled with a
-       note and this page's own URL, so they forward it to whichever
-       transformation lead they have in mind. -->
-  <section id="cta" class="sc-section cta-page" data-sc-act="flow" data-sc-drift="#0B0A08">
-    <div class="sc-wrap cta-page__wrap">
-
-      <p class="cta-page__recap">Organizations keep funding initiatives without enough evidence that they address the right problems. The evidence usually exists - it lives closest to the Pain, in discovery work already paid for and already trapped in documents. MissionControl turns that evidence into a prioritized, defensible first wave of investment, and preserves the promises so you can prove later whether it delivered.</p>
-
-      <div class="sc-stack" data-sc-in data-sc-stagger="80">
-        <h2 class="cta-page__head">See your own Investment Conscience at work.</h2>
-        <p class="cta-page__lede">Bring us a slice of your Operational Discovery. We'll show you what your Investment Conscience can reveal.</p>
-        <p class="cta-page__note">This is not a canned demonstration. We use a subset of your own evidence, so what you see is your organization, not ours.</p>
-        <p class="cta-page__free">There is no charge for this.</p>
-
-        <div class="cta-page__buttons">
-          <a class="cta-page__btn cta-page__btn--primary" href="mailto:pszews@transforming.com?subject=MissionControl%20-%20a%20slice%20of%20our%20Operational%20Discovery">Bring us a slice</a>
-          <a class="cta-page__btn cta-page__btn--secondary" id="forward-btn" href="#">Send this to your transformation lead</a>
-        </div>
-
-        <div class="cta-page__grid">
-          <div class="cta-page__col">
-            <h3>What to send</h3>
-            <p class="cta-page__col-note">Any of the following, for one Workstream. You do not need all of them - one good workshop transcript is enough to begin.</p>
-            <ul class="cta-page__list">
-              <li>Stakeholder workshop or interview transcripts</li>
-              <li>A documented Pain Point catalog</li>
-              <li>A requirements list, ideally with source context</li>
-              <li>Process documentation or observation notes</li>
-              <li>Any transformation discovery artifact you already have</li>
+        <div class="cta__grid">
+          <div class="cta__col">
+            <h3>What you should know before you click</h3>
+            <ul class="list">
+              <li>There is no charge.</li>
+              <li>You do not need to send everything - a subset of what you already have is enough.</li>
+              <li>We will prepare a representative Findings Map from it.</li>
+              <li>The session is based on your information.</li>
+              <li>It is built to answer a small number of specific executive questions.</li>
+              <li>It starts with a conversation. We are not expecting you to email sensitive transformation material with no context.</li>
             </ul>
           </div>
-          <div class="cta-page__col">
-            <h3>What we do with it</h3>
-            <ol class="cta-page__list cta-page__list--numbered">
-              <li>Convert the relevant evidence into structured Playbook content.</li>
-              <li>Create a MissionControl Mission for it.</li>
-              <li>Generate the Findings Maps.</li>
-              <li>Build the Investment Map.</li>
-              <li>Identify the likely fundable first wave.</li>
-              <li>Create an initial Custom Value Model where the evidence supports one.</li>
-              <li>Walk your leadership through it in a 30-minute demonstration, on your evidence.</li>
+          <div class="cta__col">
+            <h3>What you get for the 30 minutes</h3>
+            <ol class="list list--num">
+              <li>What does your existing discovery evidence reveal when it is structured and connected?</li>
+              <li>Which pain appears most foundational or high-leverage, and why?</li>
+              <li>Given what we found, what would you fund first - and why?</li>
             </ol>
           </div>
         </div>
-
-        <div class="cta-page__qual">
-          <div>
-            <p class="cta-page__qual-head">This is for you if</p>
-            <ul class="cta-page__list">
-              <li>You are in the middle of a Business Transformation, not deciding whether to start one</li>
-              <li>You have real capital decisions ahead, and more candidates than budget</li>
-              <li>You have already done some Operational Discovery</li>
-              <li>You have to defend what you fund to a board, a partner group, or an operating committee</li>
-              <li>You care whether the last investment delivered, and want to be able to prove it</li>
-            </ul>
-          </div>
-          <div>
-            <p class="cta-page__qual-head cta-page__qual-head--no">This is not for you if</p>
-            <ul class="cta-page__list">
-              <li>You are looking for an AI tool</li>
-              <li>You are looking for another project-management dashboard</li>
-              <li>You have no discovery evidence yet - there is nothing to slice</li>
-              <li>You have not started - there is nothing to sequence</li>
-            </ul>
-          </div>
-        </div>
-        <p class="cta-page__intentional">That is intentional. MissionControl is built for qualified conviction, not lead volume.</p>
       </div>
     </div>
-
-    <footer class="cta-page__foot">MissionControl(TM) &copy; 2026</footer>
   </section>
 
-  <script>
-    // Forward button: opens the reader's own email client, addressed to
-    // nobody, with a note and this page's own URL - a real, working
-    // mechanism that needs no destination to be guessed.
-    (function () {
-      var btn = document.getElementById('forward-btn');
-      if (!btn) return;
-      btn.addEventListener('click', function (e) {
-        e.preventDefault();
-        var subject = encodeURIComponent('Take a look at this - MissionControl');
-        var body = encodeURIComponent('Take a look at this, and send them something:\n\n' + window.location.href);
-        window.location.href = 'mailto:?subject=' + subject + '&body=' + body;
-      });
-    })();
-  </script>
+  <!-- THE TAKEAWAY (Constitution Section 14) - pin, short, and it HOLDS on
+       its last line by design. Copy: Sarah V2's primary (compact) line; the
+       longer Constitution form is her named fallback if this reads abrupt
+       in the scroll. Declared hold. -->
+  <section class="take" data-sc-act="pin" data-sc-span="1.8" data-sc-drift="#0B0A08">
+    <div data-sc-stage class="stage" data-sc-verify-state="takeaway" data-sc-verify-hold="true">
+      <div class="room-light" data-sc-parallax="1.4" aria-hidden="true"></div>
+      <div class="frame frame--center" data-drift="slow">
+        <h2 class="take__line" data-sc-cue="0 1 0 0" data-sc-kinetic="lines">
+          Capital decisions should stay connected to the operational evidence that justified them.
+        </h2>
+      </div>
+    </div>
+  </section>
+
+  <footer class="foot">MissionControl(TM) &copy; 2026</footer>
 
 </main>
 
 <script src="scrollcraft.js"></script>
-<script>ScrollCraft.mount(document.body);</script>
+<script>
+  ScrollCraft.mount(document.body);
+
+  // The engine measures every act's top ONCE (at mount, and again on fonts
+  // ready / resize). Anything that shifts layout after that - an image
+  // arriving in a flow section above a pinned act - moves the real stage
+  // while the engine's progress keeps using the old top, so p clamps to 1
+  // early and the frame freezes for exactly the shifted distance while the
+  // sticky stage is still stuck. Caught by deadscan on the wired page as
+  // 0.60vh (desktop) / 0.36vh (mobile) of 0.00% change after the trace, the
+  // beat and the board - the height of the two surface screenshots above
+  // them. The images now carry real dimensions and load eagerly so the
+  // layout never shifts; this re-measure after load is the belt to that
+  // pair of braces.
+  addEventListener('load', function () {
+    (ScrollCraft.instances || []).forEach(function (inst) { if (inst && inst.layout) inst.layout(); });
+  });
+
+  // Kinetic headlines are split into fixed line spans using the line boxes
+  // of whatever font is rendering at split time. The engine re-splits once,
+  // on document.fonts.ready - but it registers that BEFORE its first layout,
+  // and if no font fetch is in flight at that instant fonts.ready is already
+  // resolved, so the re-split runs against the fallback font. When the real
+  // face lands, each line re-wraps inside its clipped mask under the next
+  // line's negative margin: the old line ghosting behind the new one (Paul's
+  // round-7 "whoops" on Act 1). The engine also never re-splits on resize,
+  // which produces the same ghost. Re-split whenever a font finishes loading
+  // or the width changes.
+  (function () {
+    function resplit() {
+      (ScrollCraft.instances || []).forEach(function (inst) {
+        if (!inst || !inst.acts) return;
+        inst.acts.forEach(function (a) {
+          a.cues.forEach(function (q) { if (q.kinetic && q.units) { q.el.__scSplit = null; q.units = null; } });
+        });
+        inst.layout();
+      });
+    }
+    if (document.fonts) {
+      document.fonts.addEventListener('loadingdone', resplit);
+      // Put the display face's load in flight now, so it cannot slip past an
+      // already-resolved fonts.ready; resplit again when it arrives.
+      try { document.fonts.load('500 1em "Space Grotesk"').then(resplit, function () {}); } catch (e) {}
+    }
+    var lastW = innerWidth;
+    addEventListener('resize', function () {
+      if (innerWidth === lastW) return;
+      lastW = innerWidth;
+      resplit();
+    }, { passive: true });
+  })();
+
+  // ---- Earned chrome: two latches, opened once, never closed. The pill
+  //      latch gates the CTA pill. The wordmark latch fires as designed and
+  //      sets html.earned-wordmark; the brand mark itself does not wait for
+  //      it (Paul, round 3) - the class is a hook with no current consumer.
+  (function () {
+    var root = document.documentElement;
+    var pillEl = document.querySelector('.site-bar__cta');
+    var pillAct = document.querySelector('[data-earn="pill"]');
+    var markEl = document.querySelector('[data-earn="wordmark"]');
+    var pill = false, mark = false;
+    function check() {
+      var y = scrollY, vh = innerHeight;
+      if (!pill && pillAct) {
+        // End of the act's pinned travel: the reader has seen its last line.
+        var end = pillAct.getBoundingClientRect().top + y + pillAct.offsetHeight - vh;
+        if (y >= end - 1) {
+          pill = true; root.classList.add('earned-pill');
+          if (pillEl) { pillEl.removeAttribute('aria-hidden'); pillEl.removeAttribute('tabindex'); }
+        }
+      }
+      if (!mark && markEl && markEl.getBoundingClientRect().top < vh * 0.5) {
+        mark = true; root.classList.add('earned-wordmark');
+      }
+    }
+    addEventListener('scroll', function () { requestAnimationFrame(check); }, { passive: true });
+    addEventListener('resize', check, { passive: true });
+    check();
+  })();
+
+  // ---- Offer button: subject AND body pre-populated so the reader types
+  //      nothing; the page URL rides along so the thread has context. ----
+  (function () {
+    var a = document.getElementById('cta-btn');
+    if (!a) return;
+    var subject = 'Investment Conscience - a 30-minute session on our own evidence';
+    var body = 'Hello Paul,\n\nWe have started a business transformation and have some operational discovery material. I would like to start the conversation about a 30-minute session using a subset of it.\n\n' + location.href.split('#')[0];
+    a.href = 'mailto:paul.szews@kenwayconsulting.com?subject=' + encodeURIComponent(subject) + '&body=' + encodeURIComponent(body);
+  })();
+
+  // ---- Share: the platform share sheet where there is one, otherwise an
+  //      email addressed to nobody carrying this page's URL. Plain utility,
+  //      no role, no second CTA (Sarah's call, V2 copy scope note). ----
+  (function () {
+    var a = document.getElementById('share-btn');
+    if (!a) return;
+    var url = location.href.split('#')[0];
+    a.addEventListener('click', function (e) {
+      e.preventDefault();
+      if (navigator.share) {
+        navigator.share({ title: document.title, url: url }).catch(function () {});
+      } else {
+        location.href = 'mailto:?subject=' + encodeURIComponent('Where should we invest next?') +
+          '&body=' + encodeURIComponent('Worth a read:\n\n' + url);
+      }
+    });
+  })();
+</script>
 </body>
 </html>
