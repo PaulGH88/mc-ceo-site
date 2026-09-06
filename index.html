@@ -3,8 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<!-- The tab title is the first thing on screen, before a single scroll, so it
-     is a question the reader already has and names nothing (Constitution 4.7). -->
+
 <title>Where should we invest next?</title>
 <meta name="description" content="Capital decisions should stay connected to the operational evidence that justified them.">
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='6' fill='%23100D08'/><circle cx='16' cy='16' r='4' fill='%23C9A14A'/></svg>">
@@ -37,7 +36,9 @@
      engine writes an inline transform on cue elements and would collide. */
   [data-drift] {
     --drift: 30vh;
-    transform: translate3d(0, calc((0.5 - var(--sc-p, 0.5)) * var(--drift)), 0);
+    /* V5: minus --fit-over, the fit device's upward slide (0px on every frame
+       but a [data-fit] one - see the V5 block and the page script). */
+    transform: translate3d(0, calc((0.5 - var(--sc-p, 0.5)) * var(--drift) - var(--fit-over, 0px)), 0);
     will-change: transform;
   }
   [data-drift="slow"] { --drift: 18vh; }
@@ -237,7 +238,10 @@
   }
 
   @media (prefers-reduced-motion: reduce) {
-    [data-drift], .ledger__item { transform: none !important; }
+    [data-drift]:not([data-fit]), .ledger__item { transform: none !important; }
+    /* The fit slide is legibility, not decoration: without it a phone stage
+       clips the bottom of Act 2's ladder. Keep the slide, drop the drift. */
+    [data-fit] { transform: translate3d(0, calc(-1 * var(--fit-over, 0px)), 0) !important; }
   }
   /* Phone type and drift overrides live in ONE block at the END of this
      stylesheet - see there. They were first written here and silently lost
@@ -549,6 +553,80 @@
   .cta__next .list li b { font-family: var(--sc-font-display); font-weight: 500; color: var(--sc-ink); }
   .cta__quiet { margin-top: var(--sc-5); }
 
+  /* ==================================================================
+     V5 (2026-09-06, Paul's live V4 review) - THE HELD SURFACES, plus two
+     page-local devices. Engine untouched.
+     ================================================================== */
+  /* 1. The hold. Both thread captures stay at the top of the viewport while
+     their surface's copy scrolls beneath them, and release only once the last
+     paragraph in the surface has passed under (Paul: keep the map in view
+     through the quote; the same treatment on both maps). Plain CSS sticky:
+     .hold is the containing block, .hold__band sticks at the top and paints
+     an opaque canvas band with a soft lower edge so the copy passes UNDER
+     the capture, and .hold__run is ordinary flow. Both surfaces' wraps lost
+     [data-drift]: a transformed ancestor shifts a stuck element by the drift,
+     so a held capture would have crept 15vh across its own hold. */
+  .hold { position: relative; margin-top: var(--sc-6); }
+  .hold__band {
+    --band-top: 64px; --band-fade: var(--sc-6);
+    position: sticky; top: 0; z-index: 3;
+    padding: var(--band-top) 0 var(--band-fade);
+    background: linear-gradient(to bottom,
+      var(--sc-canvas) 0, var(--sc-canvas) calc(100% - var(--band-fade)), transparent 100%);
+  }
+  .hold__band .shot { margin-top: 0; }
+  /* A held 2:1 capture must not eat the reading room on a laptop-height
+     desktop: its width is capped by the viewport height so the band stays
+     near 40vh (1440x790: 572px wide, 316px tall). No effect on a phone. */
+  .shot--fm { max-width: min(760px, calc(80vh - 60px)); }
+  /* 2. The latch. The engine writes clip-path inline from p every frame with
+     no memory, so scrolling back up re-rolled the capture (Paul, decision 3:
+     option A). The page script keeps the highest openness it has seen in
+     --latch; this !important rule outranks the engine's inline write, so the
+     unroll only ever moves forward and never closes. */
+  .shot[data-latch] { clip-path: inset(0 0 var(--latch, 100%) 0) !important; }
+  /* 3. The fit - see the page script. A pinned frame taller than its stage
+     is clipped at the stage's bottom (overflow: clip), which is exactly what
+     Paul's phone did to Act 2's last rung: every lab check had run at 844px
+     tall, and a real iPhone in Safari shows ~660. The script measures the
+     bottom of the newest-arrived ledger step and publishes the overflow as
+     --fit-over; the [data-drift] transform subtracts it, so the frame slides
+     up only as far as the newest step needs, eased on that step's arrival. */
+  /* 4. The pill headings (Paul, V4 review: both pill lists need a heading). */
+  .depth__head {
+    font-family: var(--sc-font-display); font-weight: 500;
+    font-size: clamp(1rem, 1.7vw, 1.2rem); color: var(--sc-ink); line-height: 1.3;
+    margin: var(--sc-6) auto 0; max-width: 56ch; text-wrap: balance;
+  }
+  .depth__head + .depth { margin-top: var(--sc-3); }
+  /* 5. The coined terms carry the accent wherever they are named in copy
+     (Paul, decision 4: Findings Map, Investment Conscience and Investment
+     Map - NOT MissionControl, whose wordmark has its own treatment). The
+     same device .earn em and the pill already use. */
+  .term { color: var(--sc-accent); font-style: normal; }
+  /* 6. A surface label that IS a figure (Paul: the Calculator subheadline becomes the
+     number). The label style is 0.68rem tracked caps - right for "ICR Scoring", wrong
+     for "$790,500 a year", which has to read as a number at a glance. */
+  .grow__surface--fig {
+    font-family: var(--sc-font-display); font-weight: 500; color: var(--sc-accent);
+    font-size: clamp(1.15rem, 2vw, 1.45rem); letter-spacing: 0; text-transform: none;
+    font-variant-numeric: tabular-nums; margin-top: 0.2em;
+  }
+  /* 7. The Calculator glimpse crops to the capture's INPUTS panel (62 / $42,500 / 30% -
+     the numbers the copy names), not its output panel: the capture's own total,
+     $553,400, its risk-adjusted value on those same inputs, sat legibly beside the
+     new "$790,500 a year" label on the same row (Annabelle, V5 Paired-Check, finding
+     2). The image is zoomed to 210% and offset so the left panel fills the 2:1 box:
+     x 9%-57% and y 52%-100% of the capture. --pos does not apply to this tile. */
+  .glimpse--inputs img {
+    /* place-self: start - .glimpse is a grid with place-items: center, which would centre
+       the oversized image in the cell before the translate and slide the window onto the
+       output panel (first peek did exactly that). Anchored at the cell's origin, the
+       translate is in the image's own coordinates: x -9%, y -52% of the capture. */
+    place-self: start; width: 210%; height: auto; max-width: none; object-fit: unset;
+    transform: translate(-9%, -52%); transform-origin: 0 0;
+  }
+
   /* ==== PHONE OVERRIDES - LAST ON PURPOSE. Every rule here shares
      specificity with a base rule above; being last is what makes it win.
      Do not move this block up. ====
@@ -606,6 +684,22 @@
     .grow__q { font-size: 0.95rem; }
     .grow__body { font-size: 0.8rem; }
     .grow__strand { font-size: 0.76rem; margin-top: 0.35em; }
+    /* V5: the held band clears the phone chrome and the rail row (rail at
+       46px), with a shorter fade so the reading room under it stays ~380px
+       at a real 664px viewport. */
+    .hold__band { --band-top: 60px; --band-fade: var(--sc-4); }
+    .depth__head { font-size: 1rem; }
+    .grow__surface--fig { font-size: 1.1rem; }
+    /* V5: Act 3 on a phone - the same headline-under-the-scrim shape Act 2 had. The centred
+       frame ran ~585px against a 664px stage, so the question's first line sat under the
+       bar (peek at p=0.9, 390x664), a line worse once the Investment Conscience definition
+       took Paul's longer wording. Top-aligning it (Act 2's treatment) fixed the end but
+       left the opening screen empty under a pinned headline, so instead the frame stays
+       centred and the type tightens to ~470px, which centres clear of the scrim at every p. */
+    .act3 .stack > * + * { margin-top: var(--sc-4); }
+    .act3 .answer { font-size: 0.92rem; }
+    .act3 .earn { font-size: 1.05rem; padding-top: var(--sc-4); }
+    .act3 .frame[data-drift="slow"] { --drift: 4vh; }
   }
 
   /* ==== SHORT-VIEWPORT OVERRIDES - ALSO LAST ON PURPOSE. ====
@@ -656,36 +750,25 @@
 <span data-sc-progress></span>
 <div class="sc-grain" aria-hidden="true"></div>
 
-<!-- Chrome. The brand mark is present from the first screen; the pill is
-     earned - it latches on the END of the act carrying data-earn="pill" and
-     is inert to pointer and assistive tech until then. Pill text per Sarah's
-     build note 2; it fits a 390px row at the phone type size, so there is
-     one label, not a long/short pair. -->
+
 <header class="site-bar">
   <span class="site-bar__mark"><b>MissionControl</b><sup style="font-size:0.6em">TM</sup></span>
   <a class="site-bar__cta" href="#cta" aria-hidden="true" tabindex="-1">See Your Own <em>Investment Conscience</em></a>
 </header>
 
-<!-- V3 item 4 - the thread rail. The one element that crosses act boundaries:
-     the pain's id at its head, one dot per surface the pain passes through,
-     lit by the page script from each surface's own progress. Present only
-     while the thread runs (Findings Map through the compressed beat). -->
+
 <aside class="rail" aria-hidden="true">
   <span class="rail__id">1024.01</span>
   <span class="rail__dot" data-rail="fm"></span><span class="rail__line"></span>
   <span class="rail__dot" data-rail="im"></span><span class="rail__line"></span>
   <span class="rail__dot" data-rail="icr"></span><span class="rail__line"></span>
-  <span class="rail__dot" data-rail="calc"></span><span class="rail__line"></span>
-  <span class="rail__dot" data-rail="pbx"></span>
+  <span class="rail__dot" data-rail="calc"></span>
+  
 </aside>
 
 <main id="top">
 
-  <!-- ACT I - "Do I recognize this?"  pin. Copy: Sarah V2 Act I (Tour deck
-       wording, Slides 5-7). The question and its sub-line are PRESENT at
-       p=0 - the hero never fades in from an empty screen. Three gaps arrive
-       as a ledger and stay; the self-qualification closes. No product name
-       anywhere in this act. -->
+  
   <section class="act1" data-sc-act="pin" data-sc-span="3.4" data-sc-drift="#0B0A08">
     <div data-sc-stage class="stage">
       <div class="grid-ground" data-sc-parallax="-3" aria-hidden="true"></div>
@@ -705,12 +788,7 @@
     </div>
   </section>
 
-  <!-- ACT I follow-on - what changes when the gaps close. Reading section.
-       V3 item 1 (Paul: delay the dollars): the three value CONCEPTS live
-       here; no figures, no Value Driver brand names - those reappear at the
-       payoff inside the compressed beat, scope-labeled. Headline locked by
-       Paul 2026-09-05: "What changes when these gaps close?" Copy: Sarah V3
-       COMPLETE, verbatim. -->
+  
   <section class="surface drivers-act" data-sc-act="flow" data-sc-drift="#0C0A08">
     <div class="sc-wrap surface__wrap" data-drift>
       <h2 class="q q--md">What changes when these gaps close?</h2>
@@ -718,11 +796,11 @@
       <div class="drivers">
         <div class="driver">
           <p class="driver__name">Faster relief</p>
-          <p class="driver__desc">Pain stops accumulating sooner.</p>
+          <p class="driver__desc">Every unrelieved pain point has a real, ongoing cost - a check the organization keeps writing every month it stays unresolved. Relief stops that check.</p>
         </div>
         <div class="driver">
           <p class="driver__name">Faster understanding</p>
-          <p class="driver__desc">Leadership spends less time reconstructing what the organization already learned.</p>
+          <p class="driver__desc">Leadership reaches real understanding directly - without the hours and cost of getting up to speed on discovery work they weren't in the room for.</p>
         </div>
         <div class="driver">
           <p class="driver__name">Better sequencing</p>
@@ -732,30 +810,19 @@
     </div>
   </section>
 
-  <!-- ACT II - "Why does this happen?"  pin, the thinning ledger. Copy:
-       Sarah V2 Act II, verbatim. Six stages accumulate; each earlier one dims
-       and, on phones, compresses as the next arrives - the compression
-       happens TO the evidence. Nobody on the chain is named or blamed. -->
+  
   <section class="act2" data-sc-act="pin" data-sc-span="4.4" data-sc-drift="#0E0C09">
     <div data-sc-stage class="stage">
       <div class="grid-ground" data-sc-parallax="-2.4" aria-hidden="true"></div>
-      <div class="frame frame--center frame--tall" data-drift="slow">
+      
+      <div class="frame frame--center frame--tall" data-drift="slow" data-fit="24">
         <h2 class="q" data-sc-cue="0 1 0 0" data-sc-kinetic="lines">
           Why do these gaps persist even with smart people and good consultants?
         </h2>
         <p class="line-ital act2__lead" data-sc-cue="0.04">The problem is not effort. It is distance.</p>
         <p class="answer act2__intro" data-sc-cue="0.09">The people closest to the pain are rarely the people deciding what to fund next. In between, the evidence has to travel - and it loses something at every step.</p>
         <div class="ledger ledger--thin act2__chain" aria-label="How evidence travels">
-          <!-- V3 item 2 (Paul: let the reader watch information disappear). Each rung
-               is the SAME evidence card at a lower density - a strict subset of the
-               rung above - and as the next rung lands, the previous card's dropped
-               strands (.s-drop) physically detach. The rung labels are Sarah's V2
-               lines, verbatim. The card is the real pain the thread follows
-               (1024.01, Billing and AR, Contract Intake & Metadata Handoff), attributed
-               by role; the quote is the transcript verbatim, no elision needed. Rung 2
-               is the pain's own recorded summary; the paraphrased headlines on rungs
-               3-6 are Tina's illustration of how the wording thins, not client text.
-               V4 (2026-09-06): swapped from the GL thread per Paul's ruling. -->
+          
           <div class="ledger__item rung" style="--e:0.18; --w:0.09">
             <p class="rung__label">A firsthand observation, from someone doing the work.</p>
             <div class="ecard">
@@ -800,14 +867,8 @@
     </div>
   </section>
 
-  <!-- ACT III - "What would better look like?"  pin, one calm screen. Copy:
-       Sarah V2 Act III, verbatim. Three lines accumulate; "Investment
-       Conscience" is named once, on the last line. The CTA pill latches when
-       this act's travel ENDS (data-earn="pill") - Paul's ruling, round 2. -->
-  <!-- V3 item 3 (Paul): one extra beat BEFORE the name is given - "What if the
-       reasoning were still there..." - with scroll room around it, so the reader
-       invents the concept before being told its name. The frame's continuous drift
-       keeps the pause alive (Constitution Section 10) while nothing new arrives. -->
+  
+  
   <section class="act3" data-sc-act="pin" data-sc-span="3.2" data-sc-drift="#0B0A08" data-earn="pill">
     <div data-sc-stage class="stage">
       <div class="room-light" data-sc-parallax="1.2" aria-hidden="true"></div>
@@ -817,17 +878,14 @@
           <p class="answer" data-sc-cue="0.14">Not better presentations. A durable structure - one that holds the evidence, the reasoning, the context, and the trail back to where it came from, so none of it thins out on the way up.</p>
           <p class="answer" data-sc-cue="0.32">You already paid to create much of this evidence. The problem is that it is trapped in static documents.</p>
           <p class="line-ital" data-sc-cue="0.5">What if the reasoning were still there when the decision had to be made?</p>
-          <p class="earn" data-sc-cue="0.72">That is what we mean by an <em>Investment Conscience</em> - persistent access to the knowledge and evidence that should inform a capital decision, at the moment you're making it, not filed away in a deck nobody opens again.</p>
+          
+          <p class="earn" data-sc-cue="0.72">This is what we mean by an <em>Investment Conscience</em>: the deep knowledge and evidence that should inform a capital decision - available at the moment you are making the decision, not filed away in a deck nobody opens again.</p>
         </div>
       </div>
     </div>
   </section>
 
-  <!-- ACT IV - "Can I trust the findings?"  pin: the act's question and its
-       intro. Copy: Sarah V2 Act IV headline + intro, verbatim. The two full
-       surfaces follow as reading sections with reveal wipes - the copy is
-       too much for one pinned phone screen, and the Section 6 order
-       (question, visual, implication, depth) reads top-to-bottom anyway. -->
+  
   <section class="act4" data-sc-act="pin" data-sc-span="2.4" data-sc-drift="#0C0A08">
     <div data-sc-stage class="stage">
       <div class="grid-ground" data-sc-parallax="-2" aria-hidden="true"></div>
@@ -838,131 +896,109 @@
     </div>
   </section>
 
-  <!-- SURFACE 1 - Findings Map. Copy: Sarah V2 implication + depth, verbatim;
-       Consequence and stakeholder quote block: Sarah V3 copy for pain 1024.01
-       (post-Paired-Check, Annabelle 54/60). The capture is the REAL Findings Map
-       with the thread's pain's card open (redacted at the source, served from the
-       private staging folder on :4513 - nothing client-derived lives in this repo;
-       deploy swaps the base URL for assets/). The highlight box draws where the
-       pain's card sits; the docked card gains its "evidence" strand (Tina, from the
-       record: transcript date and time, evidence check). Quote: transcript
-       verbatim, attributed by role - no name anywhere. -->
+  
+  
   <section class="surface surface--fm" data-sc-act="flow" data-sc-drift="#0B0A08">
-    <div class="sc-wrap surface__wrap" data-drift>
+    <div class="sc-wrap surface__wrap">
       <h2 class="q">What did we actually learn, and where did each conclusion come from?</h2>
-      <figure class="shot" data-sc-reveal="up" data-sc-reveal-at="0.14 0.36">
-        <div class="shot__chrome"><span></span><span></span><span></span></div>
-        <img src="assets/thread-01-findings-map.png" width="2744" height="1366" loading="eager" alt="A Findings Map with one finding's evidence card open beside the flow diagram between finance functions.">
-        <span class="hl" style="--e:0.26; --w:0.1; left:2.2%; top:24.1%; width:32.6%; height:67.8%;" aria-hidden="true"></span>
-      </figure>
-      <div class="thread-row">
-        <div class="ecard ecard--thread" style="--e:0.36; --w:0.12">
-          <div class="ecard__id">1024.01 <small>The same pain, traced</small></div>
-          <p class="ecard__head">Contract details buried in PDFs not transmitted to Finance</p>
-          <span class="strand"><b>Revenue Accountant</b> - Contract Intake &amp; Metadata Handoff</span>
-          <!-- The Findings Map strand: what this surface adds to the pain - its evidence.
-               Data on record: workshop transcript, October 8, 2025, 12:29; evidence check
-               PASS-Exact (the words match the transcript exactly). -->
-          <span class="strand s-new"><b>Evidence, kept:</b> the workshop transcript, October 8, 2025, 12:29 - the words checked against it, exactly.</span>
+      <div class="hold">
+        <div class="hold__band">
+          <figure class="shot shot--fm" data-sc-reveal="up" data-sc-reveal-at="0.10 0.26" data-latch>
+            <div class="shot__chrome"><span></span><span></span><span></span></div>
+            <img src="assets/thread-01-findings-map.png" width="2744" height="1366" loading="eager" alt="A Findings Map with one finding's evidence card open beside the flow diagram between finance functions.">
+            <span class="hl" style="--e:0.26; --w:0.1; left:2.2%; top:24.1%; width:32.6%; height:67.8%;" aria-hidden="true"></span>
+          </figure>
         </div>
-        <p class="answer implication">Click the conclusion, and the evidence underneath it is right there - who said it, in what session, connected to which function and which data flow. A leader who wasn't in the room can follow the exact chain from a stakeholder's own words to the finding built on them. Nothing here has to be taken on faith. This is what a MissionControl Findings Map makes visible.</p>
+        <div class="hold__run">
+          <div class="thread-row">
+            
+            <div class="ecard ecard--thread" style="--e:0.29; --w:0.08">
+              <div class="ecard__id">1024.01 <small>The same pain, traced</small></div>
+              <p class="ecard__head">Contract details buried in PDFs not transmitted to Finance</p>
+              <span class="strand"><b>Revenue Accountant</b> - Contract Intake &amp; Metadata Handoff</span>
+              
+              <span class="strand s-new"><b>Evidence, kept:</b> the workshop transcript, October 8, 2025, 12:29 - the words checked against it, exactly.</span>
+            </div>
+            <p class="answer implication">Click the conclusion, and the evidence underneath it is right there - who said it, in what session, connected to which function and which data flow. A leader who wasn't in the room can follow the exact chain from a stakeholder's own words to the finding built on them. Nothing here has to be taken on faith. This is what a MissionControl <em class="term">Findings Map</em> makes visible.</p>
+          </div>
+          
+          <div class="consequence">
+            <p class="consequence__label">The cost of this pain point is significant</p>
+            <p class="answer answer--ink">Here is a real pain point: the terms that drive invoicing, pricing and forecasting live inside Contract documents, and Finance receives only the contract number. Every rate, cap and milestone gets reopened, interpreted and rekeyed by hand. In the evidence record, seventeen other documented pains depend directly on this one - invoice setup, client billing identifiers, purchase-order matching, contract lineage when a client is renamed or acquired, forecasts, renewals, billing automation - and thirty-four once you follow the chain. Relief is recorded as less manual re-entry and a faster close, measured as the reduction in invoices that have to be corrected by hand. That measure comes from the same discovery record as the finding itself.</p>
+          </div>
+          
+          <p class="depth__head">Every <em class="term">Findings Map</em> answers these questions and more.</p>
+          <ul class="depth"><li>Which pain points connect across functions?</li><li>What data moves between them?</li><li>Does this exact conclusion trace back to the transcript, word for word?</li></ul>
+          <p class="caption">Every conclusion here is inspectable, not just visible. Click it, and the reasoning behind it is right there to audit.</p>
+          <blockquote class="quote">
+            <p>"There's good info in the contracts, but it's buried in PDFs or Word docs. Few of these details get passed to Finance."</p>
+            <footer>From the workshop transcript, in the stakeholder's own words - a Revenue Accountant, in Contract Intake &amp; Metadata Handoff. Directly traceable in the finding behind the recommendation.</footer>
+          </blockquote>
+        </div>
       </div>
-      <div class="consequence">
-        <p class="consequence__label">The cost of leaving this one in place</p>
-        <p class="answer answer--ink">A real business function stakeholder pain point: the terms that drive invoicing, pricing and forecasting live inside contract documents, and Finance receives only the contract number. Every rate, cap and milestone gets reopened, interpreted and rekeyed by hand. In the evidence record, seventeen other documented pains depend directly on this one - invoice setup, client billing identifiers, purchase-order matching, contract lineage when a client is renamed or acquired, forecasts, renewals, billing automation - and thirty-four once you follow the chain. Relief is recorded as less manual re-entry and a faster close, measured as the reduction in invoices that have to be corrected by hand. That measure comes from the same discovery record as the finding itself.</p>
-      </div>
-      <ul class="depth"><li>Which pain points connect across functions?</li><li>What data moves between them?</li><li>Does this exact conclusion trace back to the transcript, word for word?</li></ul>
-      <p class="caption">Every conclusion here is inspectable, not just visible. Click it, and the reasoning behind it is right there to audit.</p>
-      <blockquote class="quote">
-        <p>"There's good info in the contracts, but it's buried in PDFs or Word docs. Few of these details get passed to Finance."</p>
-        <footer>From the workshop transcript, in the stakeholder's own words - a Revenue Accountant, in Contract Intake &amp; Metadata Handoff. Directly traceable in the finding behind the recommendation.</footer>
-      </blockquote>
     </div>
   </section>
 
-  <!-- SURFACE 2 - Investment Map. Copy: Sarah V2 implication, depth and caption,
-       verbatim; callback sentence, "Why fund this first?" answer, docked strand and
-       the depth cue: Sarah V3 copy for pain 1024.01 (post-Paired-Check). Paul's
-       rulings 2026-09-06: the authority gate is NAMED in the answer; the map's own
-       blast-radius figure is OMITTED (the capture is clipped above that line); the
-       depth cue is IN; "The map marks it At Risk for exactly that reason" stays,
-       with the At Risk chip visible in the capture. -->
-  <!-- The capture is the REAL Investment Map, the same pain's chip and story panel open
-       (Tier 1 - Move Now, At Risk - contract-system legal-authority gate, fund rank
-       8 of 36). Clipped live to 2744x910: it opens on the "ICR LIVE" badge and ends on
-       the readiness sentence, so neither the embed's fundable-count subtitle nor the
-       panel's numeric Impact/Complexity/Leverage line can sit beside the copy's 17/34
-       dependency claim (Annabelle F4/F5). Data on record for this surface: Tier 1 -
-       Move Now; At Risk (authority gate: contract-system legal/contract authority);
-       fund rank 8 of 36 fundable Billing and AR stories; 17 pains depend on it directly,
-       34 transitively (the Playbook's recorded dependency graph); the Investment Map's
-       separate blast-radius figure is 6 (shares the Contract data object) - a different
-       instrument, never in the same sentence. Two highlight boxes: the chip, then the
-       panel. The sixth capture - the Playbook's dependency view - docks under the
-       "Why fund this first?" answer, where the seventeen is first claimed as a count
-       (Paul, decision 4). -->
+  
+  
+  
   <section class="surface surface--im" data-sc-act="flow" data-sc-drift="#0C0A08">
-    <div class="sc-wrap surface__wrap" data-drift>
+    <div class="sc-wrap surface__wrap">
       <h2 class="q">Given what we now know, where should we invest first?</h2>
-      <figure class="shot" data-sc-reveal="up" data-sc-reveal-at="0.12 0.3">
-        <div class="shot__chrome"><span></span><span></span><span></span></div>
-        <img src="assets/thread-02-investment-map.png" width="2744" height="910" loading="eager" alt="An Investment Map tier grid sorting stories by impact and complexity, with the same pain's story panel open: Tier 1 - Move Now, At Risk, with the authority gate named in the panel.">
-        <span class="hl hl--thin" style="--e:0.2; --w:0.08; left:26.6%; top:75%; width:14.5%; height:4.4%;" aria-hidden="true"></span>
-        <span class="hl" style="--e:0.26; --w:0.1; left:72%; top:30.5%; width:24.8%; height:69%;" aria-hidden="true"></span>
-      </figure>
-      <div class="thread-row">
-        <div class="ecard ecard--thread" style="--e:0.32; --w:0.12">
-          <div class="ecard__id">1024.01 <small>The same pain, ranked</small></div>
-          <p class="ecard__head">Contract details buried in PDFs not transmitted to Finance</p>
-          <span class="strand"><b>Revenue Accountant</b> - evidence kept from the Findings Map</span>
-          <!-- The Investment Map strand, Sarah's line. No readiness caveat here (Annabelle F2):
-               the answer below and the ICR beat carry it, twice on-site, no more. -->
-          <span class="strand s-new"><b>Move Now.</b> Thirty-four pains trace back to it.</span>
+      <div class="hold">
+        <div class="hold__band">
+          <figure class="shot" data-sc-reveal="up" data-sc-reveal-at="0.08 0.22" data-latch>
+            <div class="shot__chrome"><span></span><span></span><span></span></div>
+            <img src="assets/thread-02-investment-map.png" width="2744" height="910" loading="eager" alt="An Investment Map tier grid sorting stories by impact and complexity, with the same pain's story panel open: Tier 1 - Move Now, At Risk, with the authority gate named in the panel.">
+            <span class="hl hl--thin" style="--e:0.22; --w:0.08; left:26.6%; top:75%; width:14.5%; height:4.4%;" aria-hidden="true"></span>
+            <span class="hl" style="--e:0.28; --w:0.1; left:72%; top:30.5%; width:24.8%; height:69%;" aria-hidden="true"></span>
+          </figure>
         </div>
-        <p class="answer implication">The pain that is foundational and high-leverage goes first - not the pain that was proposed first, or argued for loudest. Prioritization stops being a gut call and becomes visible, explainable, and challengeable.</p>
+        <div class="hold__run">
+          
+          <p class="depth__head">The <em class="term">Investment Map</em> answers these questions and more.</p>
+          <ul class="depth"><li>Which pain is foundational?</li><li>What belongs in the first fundable wave?</li><li>What should wait?</li></ul>
+          <div class="thread-row">
+            
+            <div class="ecard ecard--thread" style="--e:0.28; --w:0.08">
+              <div class="ecard__id">1024.01 <small>The same pain, ranked</small></div>
+              <p class="ecard__head">Contract details buried in PDFs not transmitted to Finance</p>
+              <span class="strand"><b>Revenue Accountant</b> - evidence kept from the <em class="term">Findings Map</em></span>
+              
+              <span class="strand s-new"><b>Move Now.</b> Thirty-four pains trace back to it.</span>
+            </div>
+            
+            <p class="answer implication">The pain that is foundational and high-leverage should be considered for funding first - not the pain that was proposed first, or argued for loudest. Prioritization stops being a gut call and becomes visible, explainable, and challengeable.</p>
+          </div>
+          <p class="answer implication">That same pain - the Revenue Accountant rebuilding contract terms by hand from documents Finance was never sent - is the one the evidence ranks near the top of this workstream (the full slate of Billing and AR initiatives being considered together), and the one that thirty-four other documented pains trace back to.</p>
+          <div class="qa">
+            <p class="qa__q">Why fund this first?</p>
+            <p class="qa__a">Because it is foundational and high-leverage: it is the first link in the chain, with no dependency of its own, and seventeen documented pains depend on it directly, thirty-four in all - more than any other item in the workstream. It scores high on impact for moderate complexity, which places it in the first band, eighth of thirty-six fundable items. One condition sits in front of it: the legal and contract authority over those source documents has to clear it before work can start. The map marks it At Risk for exactly that reason. The map shows that before capital moves, not after.</p>
+          </div>
+          
+          <p class="eyebrow proof__cap">Recorded in the evidence: seventeen pains depend on the one above. Thirteen of them, in frame.</p>
+          <figure class="shot shot--proof">
+            <div class="shot__chrome"><span></span><span></span><span></span></div>
+            <img src="assets/thread-06-playbook-downstream.png" width="2744" height="1366" loading="eager" alt="The evidence base's dependency view for the same pain: upstream dependencies, none recorded; downstream, the pains that depend on it, thirteen of seventeen in frame.">
+          </figure>
+          <p class="caption">Finding the one pain that thirty-four others trace back to, across three hundred documented pains and every dependency recorded between them, is not something a person does by hand. It is what a connected evidence base makes routine.</p>
+          <p class="caption">The map makes the "why this first" argument visible enough to defend in a room full of people who weren't there for the discovery work.</p>
+        </div>
       </div>
-      <p class="answer implication">That same pain - the Revenue Accountant rebuilding contract terms by hand from documents Finance was never sent - is the one the evidence ranks near the top of this workstream (the full slate of Billing and AR initiatives being considered together), and the one that thirty-four other documented pains trace back to.</p>
-      <div class="qa">
-        <p class="qa__q">Why fund this first?</p>
-        <p class="qa__a">Because it is foundational and high-leverage: it is the first link in the chain, with no dependency of its own, and seventeen documented pains depend on it directly, thirty-four in all - more than any other item in the workstream. It scores high on impact for moderate complexity, which places it in the first band, eighth of thirty-six fundable items. One condition sits in front of it: the legal and contract authority over those source documents has to clear it before work can start. The map marks it At Risk for exactly that reason. The map shows that before capital moves, not after.</p>
-      </div>
-      <!-- The sixth capture: the Playbook's own dependency view for the same pain - upstream,
-           none recorded; downstream, the pains that depend on it. Thirteen of the seventeen
-           are in frame (Annabelle F6 counted them). Claim and proof in one viewport. -->
-      <p class="eyebrow proof__cap">Recorded in the evidence: seventeen pains depend on this one. Thirteen of them, in frame.</p>
-      <figure class="shot shot--proof">
-        <div class="shot__chrome"><span></span><span></span><span></span></div>
-        <img src="assets/thread-06-playbook-downstream.png" width="2744" height="1366" loading="eager" alt="A Playbook Explorer dependency view for the same pain: upstream dependencies, none recorded; downstream, the pains that depend on this one, thirteen of seventeen in frame.">
-      </figure>
-      <ul class="depth"><li>Which pain is foundational?</li><li>What belongs in the first fundable wave?</li><li>What should wait?</li></ul>
-      <p class="caption">Finding the one pain that thirty-four others trace back to, across three hundred documented pains and every dependency recorded between them, is not something a person does by hand. It is what a connected evidence base makes routine.</p>
-      <p class="caption">The map makes the "why this first" argument visible enough to defend in a room full of people who weren't there for the discovery work.</p>
     </div>
   </section>
 
-  <!-- (The V1 three-pill trace stood here through round 5. Cut on
-       Annabelle's whole-page Paired-Check verdict, 2026-09-05: it restated
-       the Investment Map's answer and the Findings Map's quote word for
-       word, its heading was a statement not a question, it needed usage
-       instructions, and it broke the "reasoning does not stop there"
-       transition Sarah wrote to land right after the Investment Map.) -->
+  
 
-  <!-- THE COMPRESSED BEAT - pin, fast. V3 item 8 (Paul): three QUESTIONS, the
-       surface name in small secondary type, the real glimpse beside each. Copy:
-       Sarah V3 for pain 1024.01 (post-Paired-Check), verbatim. The pain-level worth
-       is a NAMED measure, never a number; the dollar figures are the illustrative
-       Workstream-template scenario, scope-labeled as a different scenario than the
-       Billing and AR workstream above (HF-2 discipline). The readiness condition
-       appears here for its second and last time on-site. ICR note: the live score
-       set is a draft pre-score seed - nothing here implies client ratification.
-       The per-surface strand slots were folded into the bodies by Sarah's copy. -->
-  <section class="beat" data-sc-act="pin" data-sc-span="2.6" data-sc-drift="#0B0A08">
+  
+  <section class="beat" data-sc-act="pin" data-sc-span="2.0" data-sc-drift="#0B0A08">
     <div data-sc-stage class="stage">
       <div class="room-light" data-sc-parallax="1.2" aria-hidden="true"></div>
-      <div class="frame frame--center frame--tall beat__frame" data-drift="slow">
+      
+      <div class="frame frame--center frame--tall beat__frame" data-drift="slow" data-fit="24">
         <h2 class="q q--md" data-sc-cue="0 1 0 0" data-sc-kinetic="lines">The reasoning does not stop there.</h2>
-        <div class="ledger ledger--compact beat__rows" aria-label="The same pain, three more places">
-          <div class="ledger__item grow" style="--e:0.14; --w:0.08">
+        <div class="ledger ledger--compact beat__rows" aria-label="The same pain, two more places">
+          <div class="ledger__item grow" style="--e:0.18; --w:0.1">
             <div>
               <h3 class="grow__q">Why does this rank above that one?</h3>
               <p class="grow__surface">ICR Scoring</p>
@@ -970,32 +1006,21 @@
             </div>
             <div class="glimpse" style="--pos: 0 50%"><img src="assets/thread-03-icr-scoring.png" width="2744" height="1366" loading="eager" alt="A scoring table with the same pain in row eight: impact high, complexity medium, Tier 1, At Risk."></div>
           </div>
-          <div class="ledger__item grow" style="--e:0.32; --w:0.08">
+          
+          <div class="ledger__item grow" style="--e:0.46; --w:0.1">
             <div>
               <h3 class="grow__q">What is solving this pain worth?</h3>
-              <p class="grow__surface">Investment Calculator</p>
-              <p class="grow__body">For this one pain point alone: less manual re-entry and a faster close, tracked as the reduction in invoices that have to be corrected by hand, on inputs your own people set. For a sense of scale, closing three gaps like it across an illustrative workstream comes to <b>$548,917</b> in total risk-adjusted value on a <b>$54,892</b> recommended investment - <b>9.0x</b> net ROI. <i>Illustrative example - a different scenario than the Billing and AR workstream above; your organization's own numbers are calculated live.</i></p>
+              <p class="grow__surface grow__surface--fig">$790,500 a year</p>
+              <p class="grow__body">Sixty-two documented pain points across this illustrative workstream, at an average annual cost of $42,500 each - about $2,635,000 a year in pain the organization is carrying today. This scenario targets 30% of it for relief: $790,500 a year the organization could stop paying, on inputs your own people set. <i>Illustrative example - a different scenario than the Billing and AR workstream above; your organization's own numbers are calculated live.</i></p>
             </div>
-            <div class="glimpse" style="--pos: 70% 42%"><img src="assets/thread-04-calculator.png" width="2744" height="1366" loading="eager" alt="An investment calculator reduced to one number: total risk-adjusted value, recommended investment, net return."></div>
-          </div>
-          <div class="ledger__item grow" style="--e:0.50; --w:0.08">
-            <div>
-              <h3 class="grow__q">Where does the evidence live?</h3>
-              <p class="grow__surface">Playbook Explorer</p>
-              <p class="grow__body">The capability that puts structured contract data in front of Finance, filed in your <b>Playbook</b> next to the pain that justified it - and the record of the seventeen pains that depend on it, one click away.</p>
-            </div>
-            <div class="glimpse" style="--pos: 55% 42%"><img src="assets/thread-05-playbook-explorer.png" width="2744" height="1366" loading="eager" alt="A Playbook Explorer entry for the same pain, with its evidence and the words from the room expanded."></div>
+            <div class="glimpse glimpse--inputs"><img src="assets/thread-04-calculator.png" width="2744" height="1366" loading="eager" alt="The Investment Calculator's inputs for this scenario: sixty-two documented pain points, an average annual cost per pain point, and the share targeted for relief."></div>
           </div>
         </div>
       </div>
     </div>
   </section>
 
-  <!-- THE BOARD - pin, ledger without dimming (compresses on phones). V3 item 5
-       (Paul): Before Funding / At Funding / After Funding, then the doctrine -
-       "the business case should survive the investment decision". Copy: Sarah V3
-       COMPLETE, verbatim; the three-bucket compression approved by Paul as written
-       (2026-09-05 ~8:10 PM). -->
+  
   <section class="board" data-sc-act="pin" data-sc-span="3.6" data-sc-drift="#0C0A08">
     <div data-sc-stage class="stage">
       <div class="grid-ground" data-sc-parallax="-2" aria-hidden="true"></div>
@@ -1013,17 +1038,7 @@
     </div>
   </section>
 
-  <!-- THE RECAP, AND THE SILENCE AFTER IT - pin. V3 item 6 (Paul): a three-beat
-       cinematic reveal - beat, scroll, beat, scroll, beat, PAUSE, then the
-       "missing operating system" line, the SOLE "what is MissionControl" moment,
-       unchanged word for word. Copy: Sarah V3 COMPLETE beats one and two; beat
-       three from her 1024.01 copy with Paul's ADD clause ("and with everything
-       waiting behind it now in view", decision 3, 2026-09-06). The first beat is
-       present at p=0; the name lands at p~0.5; then NOTHING new arrives for the
-       rest of the act - the "let it sit" beat, declared as an authored hold so the
-       scans read it as intended. The pause before the name is quiet, not dead:
-       the frame keeps its drift. The wordmark latch hook lives on the closing
-       sentence. -->
+  
   <section class="recap-act" data-sc-act="pin" data-sc-span="3.2" data-sc-drift="#0B0A08">
     <div data-sc-stage class="stage" data-sc-verify-state="recap-silence" data-sc-verify-hold="true">
       <div class="room-light" data-sc-parallax="1.6" aria-hidden="true"></div>
@@ -1031,21 +1046,16 @@
         <p class="recap">
           <span class="recap__beat" data-sc-cue="0 1 0 0">You recognized the gaps.</span>
           <span class="recap__beat" data-sc-cue="0.14">You saw where the reasoning gets lost.</span>
-          <span class="recap__beat" data-sc-cue="0.28">You watched one real pain travel from a stakeholder's own words, through the evidence, to a funding decision - without losing anything along the way, and with everything waiting behind it now in view.</span>
-          <!-- &trade; not <sup>: the kinetic line split rebuilds the element
-               from textContent and would flatten a <sup> into plain "TM". -->
+          
+          <span class="recap__beat" data-sc-cue="0.28">You watched one real pain travel from a stakeholder's own words, through the evidence, to a funding decision - without losing anything along the way, landing exactly where the evidence said it belonged - first in line, not last.</span>
+          
           <span class="recap__name" data-sc-cue="0.52 1 0.3 0" data-sc-kinetic="lines" data-earn="wordmark">MissionControl&trade; is the missing operating system between what your people know and where you invest.</span>
         </p>
       </div>
     </div>
   </section>
 
-  <!-- FIT (Constitution Section 13) - reading section. Copy: Sarah V2,
-       verbatim. Order RULED by Paul, 2026-09-05 V3 (Decision Block item 6,
-       SWAP): Board -> Recap -> Fit -> Offer. The recap ends on the "missing
-       operating system" line and its silence, THEN the calm qualification,
-       THEN the invitation. (V2 had built Fit before the recap; held since
-       round 4, now closed.) -->
+  
   <section class="read fit" data-sc-act="flow" data-sc-drift="#0B0A08">
     <div class="sc-wrap read__wrap" data-drift="slow">
       <div class="qual">
@@ -1071,21 +1081,14 @@
     </div>
   </section>
 
-  <!-- THE OFFER (Constitution Section 12) - reading section: visible from
-       the start, drifts, never re-hides. V3 item 7 (Paul): the six-bullet
-       logistics list and the three-question list consolidated into Talk /
-       Build / Interrogate, with the quiet "no charge" line under it. Copy:
-       Sarah V3 COMPLETE, verbatim (the banned word reworded per Paul's
-       standing ruling; step 2 names both surfaces per the round-4 override). Button
-       pre-populates subject and body; nothing auto-sends. Share utility per
-       Sarah's own call: a plain link, no role, no second CTA. Address
-       confirmed by Paul 2026-09-05 (round 5). -->
+  
   <section id="cta" class="read cta" data-sc-act="flow" data-sc-drift="#0B0A08">
     <div class="sc-wrap read__wrap" data-drift="slow">
       <div class="stack">
-        <h2 class="q cta__head">See your own Investment Conscience at work.</h2>
+        <h2 class="q cta__head">See your own <em class="term">Investment Conscience</em> at work.</h2>
         <p class="answer cta__lede answer--ink">Apply this reasoning to your own organization.</p>
-        <p class="answer cta__lede">We will use a subset of your own operational discovery so that what you see reflects your reality.</p>
+        
+        <p class="answer cta__lede">We will use a subset of your own operational discovery artifacts so that what you see reflects your reality.</p>
         <div class="cta__buttons">
           <a class="btn btn--primary" id="cta-btn" href="mailto:paul.szews@kenwayconsulting.com?subject=Investment%20Conscience%20-%20a%2030-minute%20session%20on%20our%20own%20evidence">Start the conversation</a>
           <a class="share" id="share-btn" href="#">Share this page</a>
@@ -1094,7 +1097,7 @@
           <h3>What happens next</h3>
           <ol class="list list--num">
             <li><b>We talk.</b> A short conversation to understand the transformation and figure out which existing discovery material is worth using.</li>
-            <li><b>We build.</b> You give us a small subset of material you've already created. We prepare a representative Findings Map and Investment Map around your evidence.</li>
+            <li><b>We build.</b> You give us a small subset of material you've already created. We prepare a representative <em class="term">Findings Map</em> and <em class="term">Investment Map</em> around your evidence.</li>
             <li><b>We interrogate it together.</b> Thirty minutes. Your evidence. Three questions: What do we know? What matters most? What would you fund first - and why?</li>
           </ol>
           <p class="fine cta__quiet">No charge. You don't send anything until we've spoken.</p>
@@ -1103,10 +1106,7 @@
     </div>
   </section>
 
-  <!-- THE TAKEAWAY (Constitution Section 14) - pin, short, and it HOLDS on
-       its last line by design. Copy: Sarah V2's primary (compact) line; the
-       longer Constitution form is her named fallback if this reads abrupt
-       in the scroll. Declared hold. -->
+  
   <section class="take" data-sc-act="pin" data-sc-span="1.8" data-sc-drift="#0B0A08">
     <div data-sc-stage class="stage" data-sc-verify-state="takeaway" data-sc-verify-hold="true">
       <div class="room-light" data-sc-parallax="1.4" aria-hidden="true"></div>
@@ -1219,11 +1219,12 @@
     var lastOn = null;
     function tick() {
       var pf = p(fm), pi = p(im), pb = p(beat);
+      // V5: the im dot follows its re-timed highlight box; the beat's two dots
+      // follow its re-spaced entries; the pbx dot went with the cut item.
       dots.fm.style.setProperty('--f', k(pf, 0.26, 0.10).toFixed(3));
-      dots.im.style.setProperty('--f', k(pi, 0.30, 0.10).toFixed(3));
-      dots.icr.style.setProperty('--f', k(pb, 0.14, 0.08).toFixed(3));
-      dots.calc.style.setProperty('--f', k(pb, 0.32, 0.08).toFixed(3));
-      dots.pbx.style.setProperty('--f', k(pb, 0.50, 0.08).toFixed(3));
+      dots.im.style.setProperty('--f', k(pi, 0.28, 0.10).toFixed(3));
+      dots.icr.style.setProperty('--f', k(pb, 0.18, 0.10).toFixed(3));
+      dots.calc.style.setProperty('--f', k(pb, 0.46, 0.10).toFixed(3));
       var mid = innerHeight * 0.5;
       var top = fm.getBoundingClientRect().top, bottom = beat.getBoundingClientRect().bottom;
       var on = top < mid && bottom > innerHeight * 1.2;
@@ -1232,6 +1233,103 @@
     addEventListener('scroll', function () { requestAnimationFrame(tick); }, { passive: true });
     addEventListener('resize', tick, { passive: true });
     addEventListener('load', tick);
+    tick();
+  })();
+
+  // ---- V5 (2026-09-06, Paul's live V4 review) - two page-local devices.
+  //      (1) THE LATCH. The engine's data-sc-reveal has no memory: it writes
+  //      clip-path from p every frame, so scrolling back up re-rolled the
+  //      Findings Map (decision 3: option A). A ratchet: the highest openness
+  //      seen is kept in --latch on the figure, and the stylesheet's !important
+  //      rule outranks the engine's inline write. Same curve as the engine's
+  //      own reveal, read from the same data-sc-reveal-at, so the forward
+  //      unroll is pixel-identical to before; only the way back is gone.
+  (function () {
+    var figs = Array.prototype.slice.call(document.querySelectorAll('[data-latch][data-sc-reveal]'));
+    if (!figs.length) return;
+    function smooth(x) { x = Math.max(0, Math.min(1, x)); return x * x * (3 - 2 * x); }
+    var recs = figs.map(function (f) {
+      var at = (f.getAttribute('data-sc-reveal-at') || '0 0.5').trim().split(/\s+/).map(parseFloat);
+      return { el: f, act: f.closest('[data-sc-act]'), from: at[0] || 0, to: at[1] || 0.5, max: 0 };
+    });
+    function tick() {
+      for (var i = 0; i < recs.length; i++) {
+        var r = recs[i]; if (!r.act) continue;
+        var p = parseFloat(r.act.style.getPropertyValue('--sc-p')) || 0;
+        var t = smooth((p - r.from) / Math.max(r.to - r.from, 0.001));
+        if (t > r.max) r.max = t;
+        r.el.style.setProperty('--latch', ((1 - r.max) * 100).toFixed(2) + '%');
+      }
+    }
+    addEventListener('scroll', function () { requestAnimationFrame(tick); }, { passive: true });
+    addEventListener('resize', tick, { passive: true });
+    addEventListener('load', tick);
+    tick();
+  })();
+
+  //      (2) THE FIT. A pinned frame taller than its stage is clipped at the
+  //      stage's bottom (the stage is overflow: clip), which is what Paul's
+  //      phone did to Act 2: at a real ~660px Safari viewport the last rung and
+  //      the close sat below the stage ("wants to but doesn't make it"). Every
+  //      lab check had run at 844. For each [data-fit] frame: find its steps
+  //      (ledger items by their --e/--w, cue elements by data-sc-cue) and, each
+  //      frame, publish --fit-over = how far the bottom of the newest-arrived
+  //      step sits past the stage, eased on that step's own arrival. The
+  //      [data-drift] transform subtracts it, so the frame slides up exactly as
+  //      far as the newest step needs - the headline stays until a rung really
+  //      needs its room - and slides back down on the way up. Measured live,
+  //      because the ledger's own compression changes the frame's height
+  //      across the act. Zero on any viewport where the frame already fits.
+  (function () {
+    var frames = Array.prototype.slice.call(document.querySelectorAll('[data-fit]'));
+    if (!frames.length) return;
+    function smooth(x) { x = Math.max(0, Math.min(1, x)); return x * x * (3 - 2 * x); }
+    function cssNum(el, name, d) { var v = parseFloat(el.style.getPropertyValue(name)); return isNaN(v) ? d : v; }
+    var recs = frames.map(function (f) {
+      var steps = [];
+      Array.prototype.forEach.call(f.querySelectorAll('.ledger__item, [data-sc-cue]'), function (el) {
+        var e, w;
+        if (el.classList.contains('ledger__item')) { e = cssNum(el, '--e', 0); w = cssNum(el, '--w', 0.12); }
+        else {
+          var n = (el.getAttribute('data-sc-cue') || '').trim().split(/\s+/).map(parseFloat);
+          e = isNaN(n[0]) ? 0 : n[0];
+          var to = n.length > 1 && !isNaN(n[1]) ? n[1] : null;
+          var rIn = n.length > 2 && !isNaN(n[2]) ? n[2] : 0.3;
+          w = to === null ? 0.18 : Math.max((to - e) * rIn, 0.001);
+        }
+        if (e <= 0) return;   // present from p=0: the opening screen, not a step
+        steps.push({ el: el, e: e, w: w });
+      });
+      steps.sort(function (a, b) { return a.e - b.e; });
+      return { el: f, act: f.closest('[data-sc-act]'), stage: f.closest('[data-sc-stage]'),
+               steps: steps, pad: parseFloat(f.getAttribute('data-fit')) || 24, last: -1 };
+    });
+    // Layout bottom of el inside frame, transforms ignored (offsetTop is layout).
+    function bottomIn(el, frame) {
+      var y = 0, n = el;
+      while (n && n !== frame) { y += n.offsetTop; n = n.offsetParent; }
+      return y + el.offsetHeight;
+    }
+    function tick() {
+      for (var i = 0; i < recs.length; i++) {
+        var r = recs[i]; if (!r.act || !r.stage) continue;
+        var p = parseFloat(r.act.style.getPropertyValue('--sc-p')) || 0;
+        var need = 0, prev = 0;
+        for (var s = 0; s < r.steps.length; s++) {
+          var st = r.steps[s], k = smooth((p - st.e) / st.w);
+          if (k <= 0) break;
+          var b = bottomIn(st.el, r.el);
+          need = prev + (b - prev) * k;
+          prev = b;
+        }
+        var over = Math.max(0, Math.round(r.el.offsetTop + need + r.pad - r.stage.clientHeight));
+        if (over !== r.last) { r.last = over; r.el.style.setProperty('--fit-over', over + 'px'); }
+      }
+    }
+    addEventListener('scroll', function () { requestAnimationFrame(tick); }, { passive: true });
+    addEventListener('resize', tick, { passive: true });
+    addEventListener('load', tick);
+    if (document.fonts && document.fonts.ready) document.fonts.ready.then(tick);
     tick();
   })();
 
